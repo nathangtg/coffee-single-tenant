@@ -46,7 +46,6 @@ model User {
   password       String
   phone          String?
   address        String?   @db.Text
-  profilePicture String?
   isActive       Boolean   @default(true)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

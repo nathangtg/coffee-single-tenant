@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { verifyJWT } from './lib/jwt';
 
 // Public paths that do not require authentication
-const publicPaths = ['/login', '/register', '/forgot-password', '/terms', '/privacy', '/'];  
+const publicPaths = ['/login', '/auth/register', '/forgot-password', '/terms', '/privacy', '/'];  
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
