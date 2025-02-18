@@ -1,0 +1,257 @@
+// This is your enhanced Prisma schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum definitions
+enum UserRole {
+  ADMIN
+  STAFF
+  USER
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  MOBILE_PAYMENT
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  firstName      String?
+  lastName       String?
+  role           UserRole  @default(USER)
+  password       String
+  phone          String?
+  address        String?   @db.Text
+  profilePicture String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  carts          Cart[]
+  orders         Order[]
+  favorites      Favorite[]
+  reviews        Review[]
+  
+  @@index([email])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?  @db.Text
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  items       Item[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([name])
+}
+
+model Item {
+  id          String      @id @default(cuid())
+  name        String
+  description String?     @db.Text
+  price       Float
+  imageUrl    String?
+  isAvailable Boolean     @default(true)
+  preparationTime Int?    // in minutes
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+  options     ItemOption[]
+  favorites   Favorite[]
+  reviews     Review[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([categoryId])
+  @@index([name])
+  @@index([isAvailable])
+}
+
+model ItemOption {
+  id            String     @id @default(cuid())
+  itemId        String
+  name          String
+  priceModifier Float      @default(0)  // Additional cost for this option
+  item          Item       @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  cartItemOptions CartItemOption[]
+  orderItemOptions OrderItemOption[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@index([itemId])
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  @@index([userId])
+}
+
+model CartItem {
+  id        String     @id @default(cuid())
+  cartId    String
+  itemId    String
+  quantity  Int
+  notes     String?    @db.Text
+  options   CartItemOption[]
+  cart      Cart       @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  item      Item       @relation(fields: [itemId], references: [id])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  @@index([cartId])
+  @@index([itemId])
+}
+
+model CartItemOption {
+  id          String     @id @default(cuid())
+  cartItemId  String
+  optionId    String
+  cartItem    CartItem   @relation(fields: [cartItemId], references: [id], onDelete: Cascade)
+  option      ItemOption @relation(fields: [optionId], references: [id])
+  
+  @@index([cartItemId])
+  @@index([optionId])
+}
+
+model Order {
+  id           String        @id @default(cuid())
+  orderNumber  String        @unique
+  userId       String
+  status       OrderStatus   @default(PENDING)
+  totalAmount  Float
+  discount     Float?        @default(0)
+  tax          Float?        @default(0)
+  notes        String?       @db.Text
+  user         User          @relation(fields: [userId], references: [id])
+  orderItems   OrderItem[]
+  payment      Payment?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  completedAt  DateTime?
+  
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id           String        @id @default(cuid())
+  orderId      String
+  itemId       String
+  quantity     Int
+  unitPrice    Float         // Price at the time of order
+  notes        String?       @db.Text
+  options      OrderItemOption[]
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  item         Item          @relation(fields: [itemId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  @@index([orderId])
+  @@index([itemId])
+}
+
+model OrderItemOption {
+  id           String        @id @default(cuid())
+  orderItemId  String
+  optionId     String
+  priceModifier Float        // Captures the price modifier at time of order
+  orderItem    OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  option       ItemOption    @relation(fields: [optionId], references: [id])
+  
+  @@index([orderItemId])
+  @@index([optionId])
+}
+
+model Payment {
+  id            String         @id @default(cuid())
+  orderId       String         @unique
+  amount        Float
+  paymentMethod PaymentMethod
+  status        PaymentStatus  @default(PENDING)
+  transactionId String?        // For reference to external payment systems
+  paymentDate   DateTime?
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  @@index([status])
+  @@index([paymentDate])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  itemId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, itemId])
+  @@index([userId])
+  @@index([itemId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  userId    String
+  itemId    String
+  rating    Int      // 1-5 scale
+  comment   String?  @db.Text
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, itemId])
+  @@index([userId])
+  @@index([itemId])
+  @@index([rating])
+}
+
+model StoreSettings {
+  id             String   @id @default(cuid())
+  storeName      String   @default("Coffee Shop")
+  address        String?  @db.Text
+  phone          String?
+  email          String?
+  logoUrl        String?
+  openingHours   Json?    // Store as JSON: {"monday": {"open": "08:00", "close": "20:00"}, ...}
+  taxRate        Float    @default(0)
+  currencySymbol String   @default("$")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
