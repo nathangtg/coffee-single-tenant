@@ -50,7 +50,7 @@ export async function POST(req: NextRequest, res: NextApiResponse) {
       });
 
       // Generate JWT token
-      const token = signJWT({
+      const token = await signJWT({
         id: user.id,
         email: user.email,
         firstName: user.firstName,

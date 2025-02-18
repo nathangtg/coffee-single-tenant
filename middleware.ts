@@ -3,10 +3,11 @@ import type { NextRequest } from 'next/server';
 import { verifyJWT } from './lib/jwt';
 
 // Public paths that do not require authentication
-const publicPaths = ['/login', '/auth/register', '/forgot-password', '/terms', '/privacy', '/'];  
+const publicPaths = ['/auth/login', '/auth/register', '/forgot-password', '/terms', '/privacy', '/'];  
 
 export async function middleware(request: NextRequest) {
-  const token = request.cookies.get('token')?.value;
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader?.split(' ')[1];
 
   if (publicPaths.includes(request.nextUrl.pathname)) {
     return NextResponse.next();
@@ -23,14 +24,12 @@ export async function middleware(request: NextRequest) {
     const user = verifyJWT(token);
     if (!user) {
       return NextResponse.json(
-        { error: 'Invalid token' },
+        { error: 'Invalid token bos' },
         { status: 401 }
       );
     }
 
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-user-id', user.id);
-    requestHeaders.set('x-user-role', user.role);
 
     return NextResponse.next({
       request: {

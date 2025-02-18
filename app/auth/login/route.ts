@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { PrismaClient, UserRole } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { signJWT } from '@/lib/jwt';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -18,38 +18,27 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'Invalid input' }, { status: 400 });
         }
 
-        try {
-            // Check if user already exists
-            const existingUser = await prisma.user.findUnique({
+        try {            
+
+            // Login with the user
+            const user = await prisma.user.findUnique({
                 where: { email },
             });
 
-            if (existingUser) {
-                return NextResponse.json({ message: 'User already exists' }, { status: 400 });
+            if (!user) {
+                return NextResponse.json({ message: 'Invalid credentials' }, { status: 400 });
             }
 
-            // Hash the password before storing
-            const hashedPassword = await bcrypt.hash(password, 10);
+            // Compare the password
+            const isPasswordValid = await bcrypt.compare(password, user.password);
 
-            // Create the user in the database
-            const user = await prisma.user.create({
-                data: {
-                    email,
-                    password: hashedPassword,
-                    role: UserRole.USER,
-                },
-            });
+            if (!isPasswordValid) {
+                return NextResponse.json({ message: 'Invalid credentials' }, { status: 400 });
+            }
 
             // Generate JWT token
-            const token = signJWT({
-                id: user.id,
-                email: user.email,
-                role: user.role,
-                createdAt: user.createdAt,
-                firstName: user.firstName, 
-                lastName: user.lastName    
-            });
-            
+            const token = await signJWT(user)
+
 
             return NextResponse.json({ token });
         } catch (error) {
