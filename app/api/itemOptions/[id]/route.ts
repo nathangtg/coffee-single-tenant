@@ -54,15 +54,15 @@ export async function PUT(
     }
 
     const data = await req.json();
-    const { name, price } = data;
+    const { name, priceModifier } = data;
 
     // Validate required fields
-    if (!name || !price) {
+    if (!name || !priceModifier) {
         return NextResponse.json({
             message: 'Please provide all required fields',
             requiredFields: {
                 name: !name,
-                price: !price
+                priceModifier: !priceModifier
             }
         }, { status: 400 });
     }
@@ -71,7 +71,7 @@ export async function PUT(
         where: { id },
         data: {
             name,
-            priceModifier: parseFloat(price.toString() || '0'),
+            priceModifier: parseFloat(priceModifier.toString() || '0'),
         },
     });
 
