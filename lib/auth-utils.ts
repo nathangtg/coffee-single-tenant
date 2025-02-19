@@ -90,3 +90,40 @@ export const isAdmin = (req: NextRequest): boolean => {
   const user = getAuthenticatedUser(req);
   return user?.role === 'ADMIN';
 };
+
+export const setupAuthHeaders = (token: string) => {
+  if (typeof window !== 'undefined') {
+      const originalFetch = window.fetch;
+      window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+          if (init === undefined) {
+              init = {};
+          }
+          if (init.headers === undefined) {
+              init.headers = {};
+          }
+          
+          // Add authorization header to all requests except login
+          if (!input.toString().includes('/api/auth/login')) {
+              (init.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+          }
+
+          return originalFetch(input, init);
+      };
+  }
+};
+
+export const getAuthToken = () => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('token');
+};
+
+export const isAuthenticated = () => {
+  if (typeof window === 'undefined') return false;
+  return !!getAuthToken();
+};
+
+export const clearAuth = () => {
+  if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+  }
+};

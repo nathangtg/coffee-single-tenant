@@ -44,16 +44,16 @@ export async function POST(req: NextRequest) {
         }
 
         const data = await req.json();
-        const { itemId, name, price } = data;
+        const { itemId, name, priceModifier } = data;
 
         // Validate required fields
-        if (!itemId || !name || !price) {
+        if (!itemId || !name || !priceModifier) {
             return NextResponse.json({
                 message: 'Please provide all required fields',
                 requiredFields: {
                     itemId: !itemId,
                     name: !name,
-                    price: !price
+                    price: !priceModifier
                 }
             }, { status: 400 });
         }
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
             data: {
                 itemId,
                 name,
-                priceModifier: parseFloat(price.toString() || '0'),
+                priceModifier: parseFloat(priceModifier.toString() || '0'),
             }
         });
 

@@ -2,37 +2,61 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyJWT } from './lib/jwt';
 
-// Public paths that do not require authentication
 const publicPaths = [
   '/auth/login',
   '/auth/register',
   '/forgot-password',
   '/terms',
   '/privacy',
+  '/admin/login',
+  '/login', 
 ];
 
 export async function middleware(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.split(' ')[1];
-
-  if (publicPaths.includes(request.nextUrl.pathname)) {
+  const pathname = request.nextUrl.pathname;
+  
+  // Check if the path is public
+  if (publicPaths.some(path => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
-  // Check for protected pages
-  if (!token) {
+  // Check for token in cookies first
+  const token = request.cookies.get('token')?.value;
+  
+  // If no token in cookies, check Authorization header as fallback
+  const authHeader = request.headers.get('Authorization');
+  const headerToken = authHeader?.replace('Bearer ', '');
+
+  const finalToken = token || headerToken;
+
+  if (!finalToken) {
+    console.log('No token found, redirecting to login');
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  const user = verifyJWT(token);
-  if (!user) {
+  try {
+    const user = await verifyJWT(finalToken);
+    if (!user) {
+      console.log('JWT verification failed');
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+    
+    // Clone the request headers and add the user information
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('user', JSON.stringify(user));
+
+    // Return response with modified headers
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+  } catch (error) {
+    console.log('JWT verification error:', error);
     return NextResponse.redirect(new URL('/login', request.url));
   }
-
-  return NextResponse.next();
 }
 
-// Exclude API routes, static files, and favicon from middleware processing
 export const config = {
-  matcher: ['/((?!api/|_next/static|favicon.ico).*)'],
+  matcher: ['/((?!api/|_next/static|_next/image|favicon.ico).*)'],
 };

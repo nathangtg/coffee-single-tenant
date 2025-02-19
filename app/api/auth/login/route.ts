@@ -39,8 +39,24 @@ export async function POST(req: NextRequest) {
             // Generate JWT token
             const token = await signJWT(user)
 
+            // Create the response
+            const response = NextResponse.json({ 
+                user: user,
+                token: token,
+                message: 'Login successful'
+            }, 
+            { status: 200 });
 
-            return NextResponse.json({ token });
+            response.cookies.set({
+                name: 'token',
+                value: token,
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: 86400 // 24 hours
+              });
+          
+              return response;
         } catch (error) {
             console.error('Error registering user:', error);
             return NextResponse.json({ message: 'Error registering user' }, { status: 500 });
