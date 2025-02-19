@@ -94,6 +94,10 @@ export const isAdmin = (req: NextRequest): boolean => {
   return user?.role === 'ADMIN';
 };
 
+export const isLoggedIn = (req: NextRequest): boolean => {
+  return !!getAuthenticatedUser(req);
+};
+
 export const setupAuthHeaders = (token: string) => {
   if (typeof window !== 'undefined') {
       const originalFetch = window.fetch;
