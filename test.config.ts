@@ -5,6 +5,7 @@ export const TEST_CONFIG = {
       CATEGORY: '/api/category',
       ITEM: '/api/item',
       ITEM_OPTION: '/api/itemOptions',
+      CART: '/api/cart',
     },
     TEST_USER: {
       email: 'johndoe@example.com',
