@@ -2,9 +2,12 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { User } from '@/types/user';
 import { NextRequest } from 'next/server';
+import { request } from '@playwright/test';
+import { TEST_CONFIG } from '@/test.config';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; // You should set this in environment variables
-const JWT_EXPIRATION = '1h'; // Token expiration time, can be adjusted
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; 
+const JWT_EXPIRATION = '1h';
 
 // Function to hash the password (for storing in the database)
 export const hashPassword = async (password: string): Promise<string> => {
@@ -127,3 +130,23 @@ export const clearAuth = () => {
       localStorage.removeItem('token');
   }
 };
+
+export async function signIn() {
+  const context = await request.newContext();
+  const response = await context.post(`${TEST_CONFIG.BASE_URL}${TEST_CONFIG.API_ROUTES.AUTH}/login`, {
+    data: TEST_CONFIG.TEST_USER,
+  });
+  
+  if (response.status() !== 200) {
+    throw new Error('Authentication failed');
+  }
+  
+  const responseBody = await response.json();
+  return responseBody.token;
+}
+
+export function getAuthHeaders(token: string) {
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
