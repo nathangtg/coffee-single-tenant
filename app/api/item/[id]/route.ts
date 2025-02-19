@@ -5,6 +5,50 @@ import { ItemOptionData } from '@/enums/ItemOptionData';
 
 const prisma = new PrismaClient();
 
+// GET single item by ID
+export async function GET(
+    req: NextRequest, 
+    { params }: { params: { id: string } | Promise<{ id: string }> }
+) {
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
+
+    try {
+
+        if (!id) {
+            return NextResponse.json({ message: 'Item ID is required' }, { status: 400 });
+        }
+
+        const item = await prisma.item.findUnique({
+            where: { id },
+            include: {
+                category: true,
+                options: true,
+                reviews: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!item) {
+            return NextResponse.json({ message: 'Item not found' }, { status: 404 });
+        }
+
+        return NextResponse.json(item);
+    } catch (error) {
+        console.error('Error fetching item:', error);
+        return NextResponse.json({ message: 'Server error' }, { status: 500 });
+    }
+}
+
 // UPDATE item (admin only)
 export async function PUT(
     req: NextRequest, 
@@ -61,7 +105,7 @@ export async function PUT(
                     data: options.map((opt: ItemOptionData) => ({
                         itemId: id,
                         name: opt.name,
-                        price: parseFloat(opt.price.toString() || '0'),
+                        priceModifier: parseFloat(opt.price.toString() || '0'),
                     }))
                 });
             }

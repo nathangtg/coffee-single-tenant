@@ -42,45 +42,6 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// GET single item by ID
-export async function HEAD(req: NextRequest) {
-    try {
-        const id = req.url.split('/').pop();
-
-        if (!id) {
-            return NextResponse.json({ message: 'Item ID is required' }, { status: 400 });
-        }
-
-        const item = await prisma.item.findUnique({
-            where: { id },
-            include: {
-                category: true,
-                options: true,
-                reviews: {
-                    include: {
-                        user: {
-                            select: {
-                                id: true,
-                                firstName: true,
-                                lastName: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
-
-        if (!item) {
-            return NextResponse.json({ message: 'Item not found' }, { status: 404 });
-        }
-
-        return NextResponse.json(item);
-    } catch (error) {
-        console.error('Error fetching item:', error);
-        return NextResponse.json({ message: 'Server error' }, { status: 500 });
-    }
-}
-
 // CREATE new item (admin only)
 export async function POST(req: NextRequest) {
     try {
@@ -118,7 +79,7 @@ export async function POST(req: NextRequest) {
                     createMany: {
                         data: options.map((opt: ItemOptionData) => ({
                             name: opt.name,
-                            price: parseFloat(opt.price.toString() || '0'),
+                            priceModifier: parseFloat(opt.price.toString() || '0'),
                         }))
                     }
                 } : undefined,
@@ -132,105 +93,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(newItem, { status: 201 });
     } catch (error) {
         console.error('Error creating item:', error);
-        return NextResponse.json({ message: 'Server error' }, { status: 500 });
-    }
-}
-
-// UPDATE item (admin only)
-export async function PUT(req: NextRequest) {
-    try {
-        // Check if user is admin
-        if (!isAdmin(req)) {
-            return NextResponse.json({ message: 'Unauthorized, admin access required' }, { status: 401 });
-        }
-
-        const data = await req.json();
-        const { id, name, description, price, imageUrl, isAvailable, preparationTime, categoryId, options } = data;
-
-        if (!id) {
-            return NextResponse.json({ message: 'Item ID is required' }, { status: 400 });
-        }
-
-        // Check if item exists
-        const existingItem = await prisma.item.findUnique({ where: { id } });
-        if (!existingItem) {
-            return NextResponse.json({ message: 'Item not found' }, { status: 404 });
-        }
-
-        // Update the item
-        await prisma.item.update({
-            where: { id },
-            data: {
-                name: name !== undefined ? name : undefined,
-                description: description !== undefined ? description : undefined,
-                price: price !== undefined ? parseFloat(price.toString()) : undefined,
-                imageUrl: imageUrl !== undefined ? imageUrl : undefined,
-                isAvailable: isAvailable !== undefined ? isAvailable : undefined,
-                preparationTime: preparationTime !== undefined ? parseInt(preparationTime.toString()) : undefined,
-                categoryId: categoryId !== undefined ? categoryId : undefined,
-            },
-        });
-
-        // Handle options update if provided
-        if (options) {
-            // First delete existing options
-            await prisma.itemOption.deleteMany({ where: { itemId: id } });
-
-            // Then create new options
-            if (options.length > 0) {
-                await prisma.itemOption.createMany({
-                    data: options.map((opt: ItemOptionData) => ({
-                        itemId: id,
-                        name: opt.name,
-                        price: parseFloat(opt.price.toString() || '0'),
-                    }))
-                });
-            }
-        }
-
-        // Fetch updated item with fresh options
-        const finalItem = await prisma.item.findUnique({
-            where: { id },
-            include: {
-                category: true,
-                options: true,
-            },
-        });
-
-        return NextResponse.json(finalItem);
-    } catch (error) {
-        console.error('Error updating item:', error);
-        return NextResponse.json({ message: 'Server error' }, { status: 500 });
-    }
-}
-
-// DELETE item (admin only)
-export async function DELETE(req: NextRequest) {
-    try {
-        // Check if user is admin
-        if (!isAdmin(req)) {
-            return NextResponse.json({ message: 'Unauthorized, admin access required' }, { status: 401 });
-        }
-
-        const url = new URL(req.url);
-        const id = url.searchParams.get('id');
-
-        if (!id) {
-            return NextResponse.json({ message: 'Item ID is required' }, { status: 400 });
-        }
-
-        // Check if item exists
-        const existingItem = await prisma.item.findUnique({ where: { id } });
-        if (!existingItem) {
-            return NextResponse.json({ message: 'Item not found' }, { status: 404 });
-        }
-
-        // Delete the item
-        await prisma.item.delete({ where: { id } });
-
-        return NextResponse.json({ message: 'Item deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting item:', error);
         return NextResponse.json({ message: 'Server error' }, { status: 500 });
     }
 }
