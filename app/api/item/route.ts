@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getAuthenticatedUser } from '@/lib/auth-utils';
+import { ItemFilterOptions } from '@/enums/ItemFilterOptions';
+import { ItemOptionData } from '@/enums/ItemOptionData';
 
 const prisma = new PrismaClient();
 
@@ -9,19 +11,6 @@ const isAdmin = (req: NextRequest): boolean => {
     const user = getAuthenticatedUser(req);
     return user?.role === 'ADMIN';
 };
-
-// Type for option data
-interface ItemOptionData {
-    name: string;
-    price: number;
-}
-
-// Type for filter options
-interface ItemFilterOptions {
-    categoryId?: string;
-    name?: { contains: string; mode: 'insensitive' };
-    isAvailable?: boolean;
-}
 
 // GET all items with optional filtering
 export async function GET(req: NextRequest) {

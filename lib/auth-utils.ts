@@ -85,3 +85,8 @@ export const requireAdmin = (req: NextRequest): { user: User | null; error?: { m
     return { user };
   };
   
+// Helper function to check if user is admin
+export const isAdmin = (req: NextRequest): boolean => {
+  const user = getAuthenticatedUser(req);
+  return user?.role === 'ADMIN';
+};

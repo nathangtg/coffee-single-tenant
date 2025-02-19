@@ -1,22 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getAuthenticatedUser } from '@/lib/auth-utils';
+import { isAdmin } from '@/lib/auth-utils';
+import { CategoryData } from '@/enums/CategoryData';
 
 const prisma = new PrismaClient();
-
-// Helper function to check if user is admin
-const isAdmin = (req: NextRequest): boolean => {
-  const user = getAuthenticatedUser(req);
-  return user?.role === 'ADMIN';
-};
-
-// Interface for create/update category data
-interface CategoryData {
-  name: string;
-  description?: string;
-  imageUrl?: string;
-  isActive?: boolean;
-}
 
 // GET all categories with optional filtering
 export async function GET(req: NextRequest) {
@@ -87,96 +74,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(newCategory, { status: 201 });
   } catch (error) {
     console.error('Error creating category:', error);
-    return NextResponse.json({ message: 'Server error' }, { status: 500 });
-  }
-}
-
-// UPDATE category (admin only)
-export async function PUT(req: NextRequest) {
-  try {
-    // Check if user is admin
-    if (!isAdmin(req)) {
-      return NextResponse.json({ message: 'Unauthorized, admin access required' }, { status: 401 });
-    }
-    
-    const data = await req.json();
-    const { id, name, description, imageUrl, isActive } = data;
-    
-    if (!id) {
-      return NextResponse.json({ message: 'Category ID is required' }, { status: 400 });
-    }
-    
-    // Check if category exists
-    const existingCategory = await prisma.category.findUnique({ where: { id } });
-    if (!existingCategory) {
-      return NextResponse.json({ message: 'Category not found' }, { status: 404 });
-    }
-    
-    // If name is being updated, check that it's not already in use
-    if (name && name !== existingCategory.name) {
-      const nameExists = await prisma.category.findUnique({ where: { name } });
-      if (nameExists) {
-        return NextResponse.json({ message: 'A category with this name already exists' }, { status: 409 });
-      }
-    }
-    
-    // Update the category
-    const updatedCategory = await prisma.category.update({
-      where: { id },
-      data: {
-        name: name !== undefined ? name : undefined,
-        description: description !== undefined ? description : undefined,
-        imageUrl: imageUrl !== undefined ? imageUrl : undefined,
-        isActive: isActive !== undefined ? isActive : undefined,
-      },
-    });
-    
-    return NextResponse.json(updatedCategory);
-  } catch (error) {
-    console.error('Error updating category:', error);
-    return NextResponse.json({ message: 'Server error' }, { status: 500 });
-  }
-}
-
-// DELETE category (admin only)
-export async function DELETE(req: NextRequest) {
-  try {
-    // Check if user is admin
-    if (!isAdmin(req)) {
-      return NextResponse.json({ message: 'Unauthorized, admin access required' }, { status: 401 });
-    }
-    
-    const url = new URL(req.url);
-    const id = url.searchParams.get('id');
-    
-    if (!id) {
-      return NextResponse.json({ message: 'Category ID is required' }, { status: 400 });
-    }
-    
-    // Check if category exists
-    const existingCategory = await prisma.category.findUnique({
-      where: { id },
-      include: { _count: { select: { items: true } } }
-    });
-    
-    if (!existingCategory) {
-      return NextResponse.json({ message: 'Category not found' }, { status: 404 });
-    }
-    
-    // Check if category has associated items
-    if (existingCategory._count.items > 0) {
-      return NextResponse.json({
-        message: 'Cannot delete category with associated items. Please remove or reassign items first.',
-        itemCount: existingCategory._count.items
-      }, { status: 409 });
-    }
-    
-    // Delete the category
-    await prisma.category.delete({ where: { id } });
-    
-    return NextResponse.json({ message: 'Category deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting category:', error);
     return NextResponse.json({ message: 'Server error' }, { status: 500 });
   }
 }
