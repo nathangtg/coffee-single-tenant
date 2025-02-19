@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Coffee, Loader2 } from 'lucide-react';
 import {
@@ -9,51 +9,39 @@ import {
     CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { setupAuthHeaders } from '@/lib/auth-utils';
+} from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 const LoginPage = () => {
     const router = useRouter();
+    const { user, login, loading } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = async (e) => {
+    useEffect(() => {
+        if (user) {
+            router.push('/admin/dashboard');
+        }
+    }, [user, router]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
 
         try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.message || 'Login failed');
+            const success = await login(email, password);
+            if (!success) {
+                throw new Error('Invalid email or password');
             }
-
-            const data = await response.json();
-
-            // Store token in localStorage
-            const token = data.token;
-            localStorage.setItem('token', token);
-
-            // Set up default headers for future requests
-            setupAuthHeaders(token);
-
-            // Redirect to admin dashboard
             router.push('/admin/dashboard');
         } catch (err) {
-            setError(err.message || 'An error occurred during login');
+            setError(err.message || 'Login failed');
         } finally {
             setIsLoading(false);
         }
@@ -103,12 +91,8 @@ const LoginPage = () => {
                             </div>
                         )}
 
-                        <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? (
+                        <Button type="submit" className="w-full" disabled={isLoading || loading}>
+                            {isLoading || loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Signing in...
