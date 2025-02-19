@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getAuthenticatedUser } from '@/lib/auth-utils';
 import { ItemFilterOptions } from '@/enums/ItemFilterOptions';
 import { ItemOptionData } from '@/enums/ItemOptionData';
+import { isAdmin } from '@/lib/auth-utils';
 
 const prisma = new PrismaClient();
-
-// Helper function to check if user is admin
-const isAdmin = (req: NextRequest): boolean => {
-    const user = getAuthenticatedUser(req);
-    return user?.role === 'ADMIN';
-};
 
 // GET all items with optional filtering
 export async function GET(req: NextRequest) {
