@@ -128,6 +128,22 @@ export async function DELETE(
             });
         });
 
+        // Add a checking if the Cart has no item then delete the cart
+        const cart = await prisma.cart.findFirst({
+            where: {
+                cartItems: {
+                    none: {}
+                }
+            }
+        });
+
+        if (cart) {
+            await prisma.cart.delete({
+                where: { id: cart.id }
+            });
+
+            return NextResponse.json({ message: 'Cart item deleted successfully and cart is empty, cart deleted' });
+        }
         return NextResponse.json({ message: 'Cart item deleted successfully' });
     } catch (error) {
         console.error('Error deleting cart item:', error);

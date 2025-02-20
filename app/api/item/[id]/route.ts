@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 // GET single item by ID
 export async function GET(
-    req: NextRequest, 
+    req: NextRequest,
     { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
     const resolvedParams = await params;
@@ -51,7 +51,7 @@ export async function GET(
 
 // UPDATE item (admin only)
 export async function PUT(
-    req: NextRequest, 
+    req: NextRequest,
     { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
 
@@ -129,7 +129,7 @@ export async function PUT(
 
 // DELETE item (admin only)
 export async function DELETE(
-    req: NextRequest, 
+    req: NextRequest,
     { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
 
@@ -139,6 +139,8 @@ export async function DELETE(
     if (!id) {
         return NextResponse.json({ message: 'Item ID is required' }, { status: 400 });
     }
+
+    console.log('id:', id);
 
 
     try {
