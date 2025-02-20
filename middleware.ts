@@ -9,12 +9,13 @@ const publicPaths = [
   '/terms',
   '/privacy',
   '/admin/login',
-  '/login', 
+  '/login',
+  '/pages/coffee-shop'
 ];
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  
+
   // Check if the path is public
   if (publicPaths.some(path => pathname.startsWith(path))) {
     return NextResponse.next();
@@ -22,7 +23,7 @@ export async function middleware(request: NextRequest) {
 
   // Check for token in cookies first
   const token = request.cookies.get('token')?.value;
-  
+
   // If no token in cookies, check Authorization header as fallback
   const authHeader = request.headers.get('Authorization');
   const headerToken = authHeader?.replace('Bearer ', '');
@@ -40,7 +41,7 @@ export async function middleware(request: NextRequest) {
       console.log('JWT verification failed');
       return NextResponse.redirect(new URL('/login', request.url));
     }
-    
+
     // Clone the request headers and add the user information
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('user', JSON.stringify(user));

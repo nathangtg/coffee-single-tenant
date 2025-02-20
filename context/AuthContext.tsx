@@ -77,6 +77,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const data = await response.json();
       document.cookie = `token=${data.token}; path=/; max-age=86400; secure; samesite=strict`;
+      localStorage.setItem('token', data.token);
 
       setUser(data.user);
       return true;

@@ -6,7 +6,7 @@ import { request } from '@playwright/test';
 import { TEST_CONFIG } from '@/test.config';
 
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; 
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRATION = '1h';
 
 // Function to hash the password (for storing in the database)
@@ -46,48 +46,51 @@ export const verifyToken = (token: string): User | null => {
 
 // Function to get the authenticated user from a request (assuming the token is sent in Authorization header)
 export const getAuthenticatedUser = (req: NextRequest): User | null => {
-    const authHeader = req.headers.get('Authorization');
-    
-    if (!authHeader) return null;
-    
-    try {
-      const token = authHeader.split(' ')[1]; // Assuming the format is "Bearer <token>"
-      if (!token) return null;
-      
-      const decoded = jwt.verify(token, JWT_SECRET) as User;
-      return decoded;
-    } catch (error) {
-      console.error('Authentication error:', error);
-      return null;
-    }
-  };
+  const authHeader = req.headers.get('Authorization');
+
+  if (!authHeader) return null;
+
+  try {
+    const token = authHeader.split(' ')[1]; // Assuming the format is "Bearer <token>"
+    if (!token) return null;
+
+    const decoded = jwt.verify(token, JWT_SECRET) as User;
+    console.log('Authenticated user:', decoded);
+    console.log('Token:', token);
+    console.log('Auth header:', authHeader);
+    return decoded;
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return null;
+  }
+};
 
 export const requireAdmin = (req: NextRequest): { user: User | null; error?: { message: string, status: number } } => {
-    const user = getAuthenticatedUser(req);
-    
-    if (!user) {
-      return {
-        user: null,
-        error: {
-          message: 'Unauthorized: Authentication required',
-          status: 401
-        }
-      };
-    }
-    
-    if (user.role !== 'ADMIN') {
-      return {
-        user,
-        error: {
-          message: 'Forbidden: Admin access required',
-          status: 403
-        }
-      };
-    }
-    
-    return { user };
-  };
-  
+  const user = getAuthenticatedUser(req);
+
+  if (!user) {
+    return {
+      user: null,
+      error: {
+        message: 'Unauthorized: Authentication required',
+        status: 401
+      }
+    };
+  }
+
+  if (user.role !== 'ADMIN') {
+    return {
+      user,
+      error: {
+        message: 'Forbidden: Admin access required',
+        status: 403
+      }
+    };
+  }
+
+  return { user };
+};
+
 // Helper function to check if user is admin
 export const isAdmin = (req: NextRequest): boolean => {
   const user = getAuthenticatedUser(req);
@@ -100,22 +103,22 @@ export const isLoggedIn = (req: NextRequest): boolean => {
 
 export const setupAuthHeaders = (token: string) => {
   if (typeof window !== 'undefined') {
-      const originalFetch = window.fetch;
-      window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-          if (init === undefined) {
-              init = {};
-          }
-          if (init.headers === undefined) {
-              init.headers = {};
-          }
-          
-          // Add authorization header to all requests except login
-          if (!input.toString().includes('/api/auth/login')) {
-              (init.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-          }
+    const originalFetch = window.fetch;
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (init === undefined) {
+        init = {};
+      }
+      if (init.headers === undefined) {
+        init.headers = {};
+      }
 
-          return originalFetch(input, init);
-      };
+      // Add authorization header to all requests except login
+      if (!input.toString().includes('/api/auth/login')) {
+        (init.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+      }
+
+      return originalFetch(input, init);
+    };
   }
 };
 
@@ -131,7 +134,7 @@ export const isAuthenticated = () => {
 
 export const clearAuth = () => {
   if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
+    localStorage.removeItem('token');
   }
 };
 
@@ -140,11 +143,11 @@ export async function signIn() {
   const response = await context.post(`${TEST_CONFIG.BASE_URL}${TEST_CONFIG.API_ROUTES.AUTH}/login`, {
     data: TEST_CONFIG.TEST_USER,
   });
-  
+
   if (response.status() !== 200) {
     throw new Error('Authentication failed');
   }
-  
+
   const responseBody = await response.json();
   return responseBody.token;
 }
