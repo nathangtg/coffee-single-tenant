@@ -21,15 +21,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('AuthProvider mounted, checking auth...');
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    console.log('Auth state changed:', { user, loading });
+  }, [user, loading]);
+
   const checkAuth = async () => {
     try {
-      const token = document.cookie
+      let token = document.cookie
         .split('; ')
         .find(row => row.startsWith('token='))
         ?.split('=')[1];
+
+      if (!token) {
+        token = localStorage.getItem('token'); // Also check localStorage
+      }
+
+      console.log('Checking auth with token:', token);
 
       if (!token) {
         setUser(null);
@@ -48,8 +59,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Authenticated user:', data.user);
         setUser(data.user);
       } else {
+        console.warn('User authentication failed');
         setUser(null);
       }
     } catch (error) {
@@ -61,6 +74,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const login = async (email: string, password: string) => {
+    console.log('Attempting login for:', email);
+
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -76,7 +91,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       const data = await response.json();
-      document.cookie = `token=${data.token}; path=/; max-age=86400; secure; samesite=strict`;
+      console.log('Login successful, setting token:', data.token);
+
+      document.cookie = `token=${data.token}; path=/; max-age=86400; secure; samesite=lax`;
       localStorage.setItem('token', data.token);
 
       setUser(data.user);
@@ -88,9 +105,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const logout = async () => {
+    console.log('Logging out user:', user);
+
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
+
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+      localStorage.removeItem('token');
+
       setUser(null);
     } catch (error) {
       console.error('Logout failed:', error);
@@ -104,10 +126,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   );
 }
 
+
 export const useAuth = () => {
+  console.log('useAuth hook called');
+
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
+
+  console.log('Auth context state:', context);
   return context;
 };

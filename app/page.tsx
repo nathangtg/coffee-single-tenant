@@ -1,10 +1,12 @@
-import { AuthProvider } from '@/context/AuthContext';
-import { AuthTest } from './components/AuthTest';
+import Header from "./components/ui/header";
+import HomePage from "./components/ui/homepage";
+
 
 export default function Home() {
   return (
-    <AuthProvider>
-      <AuthTest />
-    </AuthProvider>
+    <main>
+      <Header />
+      <HomePage />
+    </main>
   );
 }

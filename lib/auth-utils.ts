@@ -157,3 +157,10 @@ export function getAuthHeaders(token: string) {
     Authorization: `Bearer ${token}`,
   };
 }
+
+export function checkIfAuthenticated() {
+  if (!isAuthenticated()) {
+    return false;
+  }
+  return true;
+}
