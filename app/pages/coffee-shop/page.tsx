@@ -201,7 +201,9 @@ const CoffeeShop = () => {
                         </h1>
                         <p className="text-muted-foreground mt-1">Start your day with our perfect brew</p>
                     </div>
-                    <Button variant="outline" size="lg" className="gap-2">
+                    <Button variant="outline" size="lg" className="gap-2" onClick={
+                        () => window.location.href = '/pages/cart'
+                    }>
                         <ShoppingCart className="h-5 w-5" />
                         <span className="font-semibold">{cart.length}</span>
                     </Button>
