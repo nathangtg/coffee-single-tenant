@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 
 const Header = () => {
@@ -14,13 +13,6 @@ const Header = () => {
                 <div className="flex h-16 items-center justify-between">
                     <Link href="/" className="flex items-center space-x-2">
                         <div className="relative h-8 w-8">
-                            <Image
-                                src="/public/logo.png"
-                                alt="Project 1.0 Logo"
-                                fill
-                                className="object-contain"
-                                priority
-                            />
                         </div>
                         <span className="font-mono text-xl font-bold">Project 1.0</span>
                     </Link>

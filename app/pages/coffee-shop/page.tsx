@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Badge } from '@/app/components/ui/badge';
 import { ScrollArea } from '@/app/components/ui/scroll-area';
+import Header from '@/app/components/ui/header';
 
 
 const CoffeeShop = () => {
@@ -70,10 +71,13 @@ const CoffeeShop = () => {
         try {
             const response = await fetch('/api/category');
             const data = await response.json();
-            setCategories(data);
-            if (data.length > 0) {
-                setSelectedCategory(data[0].id);
-                fetchCategoryItems(data[0].id);
+            const activeCategories = data.filter(category => category.isActive);
+
+            setCategories(activeCategories);
+
+            if (activeCategories.length > 0) {
+                setSelectedCategory(activeCategories[0].id);
+                fetchCategoryItems(activeCategories[0].id);
             }
         } catch (error) {
             console.error('Error fetching categories:', error);
@@ -81,6 +85,7 @@ const CoffeeShop = () => {
             setLoading(false);
         }
     };
+
 
     const fetchCategoryItems = async (categoryId) => {
         setLoading(true);
@@ -196,9 +201,6 @@ const CoffeeShop = () => {
             <div className="container mx-auto p-4 space-y-6">
                 <header className="flex justify-between items-center py-6 border-b">
                     <div>
-                        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                            Coffee Shop
-                        </h1>
                         <p className="text-muted-foreground mt-1">Start your day with our perfect brew</p>
                     </div>
                     <Button variant="outline" size="lg" className="gap-2" onClick={
@@ -220,11 +222,8 @@ const CoffeeShop = () => {
                     <ScrollArea className="w-full">
                         <TabsList className="mb-4 w-full justify-start">
                             {categories.map(category => (
-                                <TabsTrigger
-                                    key={category.id}
-                                    value={category.id}
-                                    className="px-6"
-                                >
+                                // Check if the category is active
+                                <TabsTrigger key={category.id} value={category.id} className="capitalize">
                                     {category.name}
                                 </TabsTrigger>
                             ))}

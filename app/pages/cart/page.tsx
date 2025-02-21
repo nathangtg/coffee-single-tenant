@@ -528,7 +528,9 @@ const CartPage = () => {
                                     </div>
                                 </CardContent>
                                 <CardFooter>
-                                    <Button className="w-full" size="lg">
+                                    <Button className="w-full" size="lg"
+                                        onClick={() => router.push('/pages/checkout')
+                                        }>
                                         Proceed to Checkout
                                     </Button>
                                 </CardFooter>

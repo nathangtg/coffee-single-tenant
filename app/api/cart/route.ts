@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
         }
 
         // Role based views
-        if(!isAdmin(req)) {
+        if (!isAdmin(req)) {
             // Fetch the cart for the logged in user
             getAuthenticatedUser(req);
             const user = getAuthenticatedUser(req);
@@ -84,6 +84,36 @@ export async function POST(req: NextRequest) {
             if (!item.quantity || typeof item.quantity !== "number" || item.quantity <= 0) {
                 return NextResponse.json({ message: `Invalid quantity for item ${item.itemId}` }, { status: 400 });
             }
+        }
+
+        // Check if the user already has a cart
+        const existingCart = await prisma.cart.findFirst({
+            where: {
+                userId
+            }
+        });
+
+        // If the user has a cart instead of creating a new one, update the existing cart
+        if (existingCart) {
+            const updatedCart = await prisma.cart.update({
+                where: {
+                    id: existingCart.id
+                },
+                data: {
+                    cartItems: {
+                        create: items.map((item) => ({
+                            itemId: item.itemId,
+                            quantity: item.quantity,
+                            notes: item.notes || null,
+                            options: item.options ? { create: item.options } : undefined
+                        })
+                        )
+                    }
+                },
+                include: { cartItems: true }
+            });
+
+            return NextResponse.json(updatedCart, { status: 201 });
         }
 
         // Create a new Cart with associated CartItems in a transaction

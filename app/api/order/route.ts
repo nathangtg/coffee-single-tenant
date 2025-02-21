@@ -16,11 +16,6 @@ interface OrderItem {
     notes?: string;
 }
 
-interface CreateOrderInput {
-    items: OrderItem[];
-    notes?: string;
-}
-
 async function generateOrderNumber(): Promise<string> {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
@@ -167,51 +162,18 @@ export async function POST(req: NextRequest) {
         }
 
         const user = getAuthenticatedUser(req);
-        const data: CreateOrderInput = await req.json();
-        const { items, notes } = data;
+        const data = await req.json();
+        const { notes } = data;
 
-        // Input validation
-        if (!items?.length) {
-            return NextResponse.json({
-                message: 'Invalid order data. At least one item is required.'
-            }, { status: 400 });
-        }
-
-        // Validate quantities
-        if (items.some(item => item.quantity < 1)) {
-            return NextResponse.json({
-                message: 'Invalid quantity. All items must have a quantity greater than 0.'
-            }, { status: 400 });
-        }
-
-        // Generate unique order number and calculate totals
-        const [orderNumber, { totalAmount, orderItems }] = await Promise.all([
-            generateOrderNumber(),
-            calculateOrderDetails(items)
-        ]);
-
-        // Create the order
-        const order = await prisma.order.create({
-            data: {
-                orderNumber,
-                userId: user.id,
-                totalAmount,
-                status: OrderStatus.PENDING,
-                notes,
-                orderItems: {
-                    create: orderItems
-                }
+        // Fetch user's cart with all related items and options
+        const cart = await prisma.cart.findFirst({
+            where: {
+                userId: user.id
             },
             include: {
-                orderItems: {
+                cartItems: {
                     include: {
-                        item: {
-                            select: {
-                                id: true,
-                                name: true,
-                                price: true,
-                            }
-                        },
+                        item: true,
                         options: {
                             include: {
                                 option: true
@@ -222,9 +184,95 @@ export async function POST(req: NextRequest) {
             }
         });
 
+        if (!cart || cart.cartItems.length === 0) {
+            return NextResponse.json({
+                message: 'Cart is empty. Please add items before creating an order.'
+            }, { status: 400 });
+        }
+
+        // Calculate total amount and prepare order items
+        let totalAmount = 0;
+        const orderItems = cart.cartItems.map(cartItem => {
+            const itemTotal = cartItem.item.price * cartItem.quantity;
+
+            // Calculate options price modifiers
+            const optionsTotal = cartItem.options.reduce((sum, opt) =>
+                sum + (opt.option.priceModifier || 0), 0);
+
+            const itemTotalWithOptions = (itemTotal + optionsTotal * cartItem.quantity);
+            totalAmount += itemTotalWithOptions;
+
+            return {
+                itemId: cartItem.itemId,
+                quantity: cartItem.quantity,
+                unitPrice: cartItem.item.price,
+                notes: cartItem.notes,
+                options: {
+                    create: cartItem.options.map(opt => ({
+                        optionId: opt.optionId,
+                        priceModifier: opt.option.priceModifier || 0
+                    }))
+                }
+            };
+        });
+
+        // Generate unique order number
+        const orderNumber = await generateOrderNumber();
+
+        // Create order and delete cart in a transaction
+        const order = await prisma.$transaction(async (tx) => {
+            // Create the order
+            const newOrder = await tx.order.create({
+                data: {
+                    orderNumber,
+                    userId: user.id,
+                    totalAmount,
+                    status: OrderStatus.PENDING,
+                    notes,
+                    orderItems: {
+                        create: orderItems
+                    }
+                },
+                include: {
+                    orderItems: {
+                        include: {
+                            item: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    price: true,
+                                }
+                            },
+                            options: {
+                                include: {
+                                    option: true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Delete the cart items
+            await tx.cartItem.deleteMany({
+                where: {
+                    cartId: cart.id
+                }
+            });
+
+            // Delete the cart itself
+            await tx.cart.delete({
+                where: {
+                    id: cart.id
+                }
+            });
+
+            return newOrder;
+        });
+
         return NextResponse.json(order, { status: 201 });
     } catch (error) {
-        console.error('Error creating order:', error);
+        console.error('Error creating order from cart:', error);
         if (error instanceof Error) {
             return NextResponse.json({ message: error.message }, { status: 400 });
         }
