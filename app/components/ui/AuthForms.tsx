@@ -1,16 +1,26 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from './alert';
+import { useAuth } from '@/context/AuthContext';
 
 const AuthForms = () => {
+    const router = useRouter();
+    const { user, login, loading } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    useEffect(() => {
+        if (user) {
+            router.push('/admin/dashboard');
+        }
+    }, [user, router]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -19,28 +29,18 @@ const AuthForms = () => {
         setSuccess('');
 
         const formData = new FormData(e.target);
-        const data = {
-            email: formData.get('email'),
-            password: formData.get('password'),
-        };
+        const email = formData.get('email') as string;
+        const password = formData.get('password') as string;
 
         try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-
-            if (!response.ok) {
-                throw new Error('Login failed. Please check your credentials.');
+            const success = await login(email, password);
+            if (!success) {
+                throw new Error('Invalid email or password');
             }
-
             setSuccess('Login successful!');
-            // Handle successful login (e.g., redirect or store token)
+            router.push('/admin/dashboard');
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Login failed');
         } finally {
             setIsLoading(false);
         }
@@ -118,9 +118,9 @@ const AuthForms = () => {
                                 <Button
                                     type="submit"
                                     className="w-full"
-                                    disabled={isLoading}
+                                    disabled={isLoading || loading}
                                 >
-                                    {isLoading ? 'Logging in...' : 'Login'}
+                                    {isLoading || loading ? 'Logging in...' : 'Login'}
                                 </Button>
                             </form>
                         </TabsContent>
