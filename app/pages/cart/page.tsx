@@ -458,8 +458,10 @@ const CartPage = () => {
         return <LoginRequired onShopClick={() => router.push('/pages/coffee-shop')} />;
     }
 
-    const allCartItems = cart.flatMap(entry => entry.cartItems);
+    const cartArray = Array.isArray(cart) ? cart : [cart]; // Ensure it's always an array
+    const allCartItems = cartArray.flatMap(entry => entry.cartItems);
     const hasItems = allCartItems.length > 0;
+
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">

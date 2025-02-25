@@ -54,16 +54,21 @@ const CoffeeShop = () => {
             }
 
             const data = await response.json();
-            if (Array.isArray(data) && data.length > 0) {
-                const latestCart = data[data.length - 1];
-                setCart(latestCart?.cartItems || []);
+
+            // Handle both array and object cases
+            let latestCart;
+            if (Array.isArray(data)) {
+                latestCart = data.length > 0 ? data[data.length - 1] : null;
             } else {
-                setCart([]); // Reset cart if empty
+                latestCart = data; // Treat it as an object response
             }
+
+            setCart(latestCart?.cartItems || []);
         } catch (error) {
             console.error('Error fetching cart:', error);
         }
     };
+
 
 
 

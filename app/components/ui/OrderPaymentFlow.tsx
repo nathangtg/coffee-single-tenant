@@ -37,7 +37,6 @@ const OrderPaymentFlow = () => {
 
     const fetchCartAndOptions = async () => {
         try {
-            // Fetch cart details
             const cartResponse = await fetch('/api/cart', {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -45,19 +44,23 @@ const OrderPaymentFlow = () => {
             });
 
             if (!cartResponse.ok) throw new Error('Failed to fetch cart');
+
             const cartData = await cartResponse.json();
 
-            if (!cartData[0]?.cartItems?.length) {
+            // Check if cartData is an array (admin) or an object (user)
+            const cart = Array.isArray(cartData) ? cartData[0] : cartData;
+
+            if (!cart?.cartItems?.length) {
                 setError('Your cart is empty');
                 setLoading(false);
                 return;
             }
 
-            setCartDetails(cartData[0]);
+            setCartDetails(cart);
 
             // Fetch options for each cart item
             const itemsWithOptions = await Promise.all(
-                cartData[0].cartItems.map(async (cartItem) => {
+                cart.cartItems.map(async (cartItem) => {
                     const optionsResponse = await fetch(`/api/cart-item/${cartItem.id}`, {
                         headers: {
                             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -65,8 +68,7 @@ const OrderPaymentFlow = () => {
                     });
 
                     if (optionsResponse.ok) {
-                        const itemWithOptions = await optionsResponse.json();
-                        return itemWithOptions;
+                        return await optionsResponse.json();
                     }
                     return cartItem;
                 })
