@@ -6,6 +6,7 @@ import CategoriesTable from "../components/categories-table"
 import ItemsTable from "../components/items-table"
 import ItemOptionsTable from "../components/item-options-table"
 import { LayoutDashboard } from "lucide-react"
+import CartManagementTable from "../components/CartTable"
 
 export default function AdminPage() {
     return (
@@ -18,7 +19,7 @@ export default function AdminPage() {
             <Card>
                 <CardContent className="p-6">
                     <Tabs defaultValue="categories" className="w-full">
-                        <TabsList className="grid w-full grid-cols-3 mb-6">
+                        <TabsList className="grid w-full grid-cols-4 mb-6">
                             <TabsTrigger value="categories" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                                 Categories
                             </TabsTrigger>
@@ -27,6 +28,9 @@ export default function AdminPage() {
                             </TabsTrigger>
                             <TabsTrigger value="options" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                                 Item Options
+                            </TabsTrigger>
+                            <TabsTrigger value="cart" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                                Cart Management
                             </TabsTrigger>
                         </TabsList>
 
@@ -39,6 +43,9 @@ export default function AdminPage() {
                             </TabsContent>
                             <TabsContent value="options">
                                 <ItemOptionsTable />
+                            </TabsContent>
+                            <TabsContent value="cart">
+                                <CartManagementTable />
                             </TabsContent>
                         </div>
                     </Tabs>

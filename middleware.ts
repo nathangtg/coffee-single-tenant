@@ -11,7 +11,7 @@ const publicPaths = [
   '/admin/login',
   '/login',
   '/pages/coffee-shop',
-  '/auth'
+  '/pages/auth'
 ];
 
 export async function middleware(request: NextRequest) {
@@ -33,14 +33,14 @@ export async function middleware(request: NextRequest) {
 
   if (!finalToken) {
     console.log('No token found, redirecting to login');
-    return NextResponse.redirect(new URL('/auth', request.url));
+    return NextResponse.redirect(new URL('/pages/auth', request.url));
   }
 
   try {
     const user = await verifyJWT(finalToken);
     if (!user) {
       console.log('JWT verification failed');
-      return NextResponse.redirect(new URL('/auth', request.url));
+      return NextResponse.redirect(new URL('/pages/auth', request.url));
     }
 
     // Clone the request headers and add the user information
@@ -55,7 +55,7 @@ export async function middleware(request: NextRequest) {
     });
   } catch (error) {
     console.log('JWT verification error:', error);
-    return NextResponse.redirect(new URL('/auth', request.url));
+    return NextResponse.redirect(new URL('/pages/auth', request.url));
   }
 }
 

@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const prisma = new PrismaClient();
 
 export async function GET(
-    req: NextRequest, 
+    req: NextRequest,
     { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
     try {
@@ -16,26 +16,27 @@ export async function GET(
 
         const resolvedParams = await params;
         const { id } = resolvedParams;
-        
+
         if (!id) {
             return NextResponse.json({ message: 'Cart ID is required' }, { status: 400 });
         }
-        
+
         const cart = await prisma.cart.findUnique({
             where: { id },
             include: {
                 cartItems: {
                     include: {
-                        options: true
+                        options: true,
+                        item: true
                     }
                 }
             }
         });
-        
+
         if (!cart) {
             return NextResponse.json({ message: 'Cart not found' }, { status: 404 });
         }
-        
+
         return NextResponse.json(cart);
     } catch (error) {
         console.error('Error fetching cart:', error);
@@ -60,7 +61,7 @@ export async function PUT(
         }
 
         const data = await req.json();
-        const { cartItems }: { cartItems: CartItemInput[] } = data;  
+        const { cartItems }: { cartItems: CartItemInput[] } = data;
 
         const updatedCart = await prisma.cart.update({
             where: { id },
@@ -90,7 +91,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-    req: NextRequest, 
+    req: NextRequest,
     { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
     try {
