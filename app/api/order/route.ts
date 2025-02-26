@@ -109,6 +109,12 @@ export async function GET(req: NextRequest) {
             // Admin can see all orders
             orders = await prisma.order.findMany({
                 include: {
+                    user: {
+                        select: {
+                            id: true,
+                            email: true,
+                        },
+                    },
                     orderItems: {
                         include: {
                             item: true,
@@ -130,6 +136,12 @@ export async function GET(req: NextRequest) {
                     userId: user.id,
                 },
                 include: {
+                    user: {
+                        select: {
+                            id: true,
+                            email: true,
+                        },
+                    },
                     orderItems: {
                         include: {
                             item: true,
