@@ -53,6 +53,12 @@ model User {
   orders         Order[]
   favorites      Favorite[]
   reviews        Review[]
+
+  // Forgot password
+  resetToken            String?
+  resetTokenExpiry      DateTime?
+  verificationCode      String?
+  verificationCodeExpiry DateTime?
   
   @@index([email])
 }

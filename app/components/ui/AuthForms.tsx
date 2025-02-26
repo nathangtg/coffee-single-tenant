@@ -18,7 +18,7 @@ const AuthForms = () => {
 
     useEffect(() => {
         if (user) {
-            router.push('/admin/dashboard');
+            router.push('/');
         }
     }, [user, router]);
 
@@ -38,7 +38,7 @@ const AuthForms = () => {
                 throw new Error('Invalid email or password');
             }
             setSuccess('Login successful!');
-            router.push('/admin/dashboard');
+            router.push('/');
         } catch (err) {
             setError(err.message || 'Login failed');
         } finally {
