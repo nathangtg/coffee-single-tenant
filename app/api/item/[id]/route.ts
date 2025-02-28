@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { isAdmin } from '@/lib/auth-utils';
 import { ItemOptionData } from '@/enums/ItemOptionData';
+import { unlink } from 'fs/promises';
+import path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -132,7 +134,6 @@ export async function DELETE(
     req: NextRequest,
     { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
-
     const resolvedParams = await params;
     const { id } = resolvedParams;
 
@@ -142,18 +143,13 @@ export async function DELETE(
 
     console.log('id:', id);
 
-
     try {
         // Check if user is admin
         if (!isAdmin(req)) {
             return NextResponse.json({ message: 'Unauthorized, admin access required' }, { status: 401 });
         }
 
-        if (!id) {
-            return NextResponse.json({ message: 'Item ID is required' }, { status: 400 });
-        }
-
-        // Check if item exists
+        // Check if item exists and get its image URL
         const existingItem = await prisma.item.findUnique({ where: { id } });
         if (!existingItem) {
             return NextResponse.json({ message: 'Item not found' }, { status: 404 });
@@ -161,6 +157,18 @@ export async function DELETE(
 
         // Delete the item
         await prisma.item.delete({ where: { id } });
+
+        // If item had an image URL and it's a local file (starts with /uploads/), delete it
+        if (existingItem.imageUrl && existingItem.imageUrl.startsWith('/uploads/')) {
+            try {
+                const imagePath = path.join(process.cwd(), 'public', existingItem.imageUrl);
+                await unlink(imagePath);
+                console.log(`Deleted image file: ${imagePath}`);
+            } catch (fileError) {
+                // Log but don't fail the request if file deletion fails
+                console.error('Error deleting image file:', fileError);
+            }
+        }
 
         return NextResponse.json({ message: 'Item deleted successfully' });
     } catch (error) {
