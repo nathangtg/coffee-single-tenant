@@ -67,7 +67,6 @@ model Category {
   id          String   @id @default(cuid())
   name        String   @unique
   description String?  @db.Text
-  imageUrl    String?
   isActive    Boolean  @default(true)
   items       Item[]
   createdAt   DateTime @default(now())

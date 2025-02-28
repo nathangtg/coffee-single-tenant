@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await req.json() as CategoryData;
-    const { name, description, imageUrl, isActive } = data;
+    const { name, description, isActive } = data;
 
     // Validate required fields
     if (!name) {
@@ -66,7 +66,6 @@ export async function POST(req: NextRequest) {
       data: {
         name,
         description,
-        imageUrl,
         isActive: isActive ?? true,
       },
     });

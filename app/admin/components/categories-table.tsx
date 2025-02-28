@@ -10,7 +10,6 @@ type Category = {
   id: string
   name: string
   description: string
-  imageUrl: string
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -65,7 +64,8 @@ export default function CategoriesTable() {
 
   const handleDelete = async (id: string) => {
     await fetch(`/api/category/${id}`, {
-      method: "DELETE", headers: {
+      method: "DELETE",
+      headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem('token')}`
       },
@@ -113,11 +113,6 @@ export default function CategoriesTable() {
                     value={newCategory.description || ""}
                     onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
                   />
-                  <Input
-                    placeholder="Image URL"
-                    value={newCategory.imageUrl || ""}
-                    onChange={(e) => setNewCategory({ ...newCategory, imageUrl: e.target.value })}
-                  />
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       checked={newCategory.isActive || false}
@@ -140,7 +135,6 @@ export default function CategoriesTable() {
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">Name</TableHead>
                   <TableHead className="font-semibold">Description</TableHead>
-                  <TableHead className="font-semibold">Image</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold">Items</TableHead>
                   <TableHead className="font-semibold text-right">Actions</TableHead>
@@ -173,20 +167,6 @@ export default function CategoriesTable() {
                         />
                       ) : (
                         category.description
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === category.id ? (
-                        <Input
-                          value={category.imageUrl}
-                          onChange={(e) =>
-                            setCategories(
-                              categories.map((c) => (c.id === category.id ? { ...c, imageUrl: e.target.value } : c)),
-                            )
-                          }
-                        />
-                      ) : (
-                        <img src={category.imageUrl} alt={category.name} className="w-10 h-10 object-cover rounded" />
                       )}
                     </TableCell>
                     <TableCell>

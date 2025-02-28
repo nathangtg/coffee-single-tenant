@@ -1,5 +1,4 @@
-import { Bell, ChevronDown, Coffee, Search } from "lucide-react";
-import Image from "next/image";
+import { ChevronDown, Coffee, Search } from "lucide-react";
 
 export default function AdminHeader() {
     return (
@@ -22,19 +21,7 @@ export default function AdminHeader() {
                     />
                 </div>
 
-                <button className="p-2 rounded-lg hover:bg-gray-100 relative">
-                    <Bell className="h-5 w-5 text-gray-600" />
-                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-                </button>
-
                 <button className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100">
-                    <Image
-                        src="/api/placeholder/32/32"
-                        alt="Admin"
-                        width={32}
-                        height={32}
-                        className="rounded-full"
-                    />
                     <ChevronDown className="h-4 w-4 text-gray-600" />
                 </button>
             </div>

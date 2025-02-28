@@ -11,7 +11,8 @@ const publicPaths = [
   '/admin/login',
   '/login',
   '/pages/coffee-shop',
-  '/pages/auth'
+  '/pages/auth',
+  '/'
 ];
 
 export async function middleware(request: NextRequest) {

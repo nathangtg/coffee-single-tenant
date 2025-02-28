@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Plus, Pencil, Trash2 } from "lucide-react"
+import { Search, Plus, Pencil, Trash2, Upload, X } from "lucide-react"
 
 type Item = {
   id: string
@@ -36,6 +36,9 @@ export default function ItemsTable() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [showAddForm, setShowAddForm] = useState(false)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetchItems()
@@ -54,25 +57,61 @@ export default function ItemsTable() {
     setCategories(data)
   }
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setImageFile(file)
+
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const resetImageInput = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
   const handleCreate = async () => {
+    const formData = new FormData()
+
+    // Add all item data to form
+    if (newItem.name) formData.append("name", newItem.name)
+    if (newItem.description) formData.append("description", newItem.description)
+    if (newItem.price !== undefined) formData.append("price", newItem.price.toString())
+    formData.append("isAvailable", (newItem.isAvailable || false).toString())
+    if (newItem.preparationTime !== undefined) formData.append("preparationTime", newItem.preparationTime.toString())
+    if (newItem.categoryId) formData.append("categoryId", newItem.categoryId)
+
+    // Add image file if exists
+    if (imageFile) {
+      formData.append("image", imageFile)
+    }
+
     await fetch("/api/item", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem('token')}`
       },
-      body: JSON.stringify(newItem),
+      body: formData,
     })
 
-    // Log the bearer Token to check
-    console.log("Bearer Token: ", localStorage.getItem('token'))
-
     setNewItem({})
+    resetImageInput()
     setShowAddForm(false)
     fetchItems()
   }
 
   const handleUpdate = async (id: string) => {
+    // For simplicity, keep updates as JSON for now
+    // A more complete solution would handle image updates with FormData too
     await fetch(`/api/item/${id}`, {
       method: "PUT",
       headers: {
@@ -87,8 +126,8 @@ export default function ItemsTable() {
 
   const handleDelete = async (id: string) => {
     await fetch(`/api/item/${id}`, {
-      method: "DELETE", headers: {
-        "Content-Type": "application/json",
+      method: "DELETE",
+      headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`
       },
     })
@@ -141,11 +180,49 @@ export default function ItemsTable() {
                   value={newItem.price || ""}
                   onChange={(e) => setNewItem({ ...newItem, price: Number.parseFloat(e.target.value) })}
                 />
-                <Input
-                  placeholder="Image URL"
-                  value={newItem.imageUrl || ""}
-                  onChange={(e) => setNewItem({ ...newItem, imageUrl: e.target.value })}
-                />
+
+                {/* Image upload section */}
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" /> Upload Image
+                    </Button>
+                    {imagePreview && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={resetImageInput}
+                        className="flex-shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {imagePreview && (
+                    <div className="mt-2 relative w-24 h-24">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover rounded border"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={newItem.isAvailable || false}
@@ -173,7 +250,12 @@ export default function ItemsTable() {
                 </Select>
               </div>
               <div className="flex justify-end space-x-2 mt-4">
-                <Button variant="outline" onClick={() => setShowAddForm(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => {
+                  setShowAddForm(false)
+                  resetImageInput()
+                }}>
+                  Cancel
+                </Button>
                 <Button onClick={handleCreate}>Create Item</Button>
               </div>
             </CardContent>
@@ -237,16 +319,8 @@ export default function ItemsTable() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {editingId === item.id ? (
-                      <Input
-                        value={item.imageUrl}
-                        onChange={(e) =>
-                          setItems(items.map((i) => (i.id === item.id ? { ...i, imageUrl: e.target.value } : i)))
-                        }
-                      />
-                    ) : (
-                      <img src={item.imageUrl} alt={item.name} className="w-10 h-10 object-cover rounded" />
-                    )}
+                    {/* Display the image from imageUrl */}
+                    <img src={item.imageUrl} alt={item.name} className="w-10 h-10 object-cover rounded" />
                   </TableCell>
                   <TableCell>
                     <Checkbox
