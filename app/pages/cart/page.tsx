@@ -14,32 +14,32 @@ import { Separator } from '@radix-ui/react-select';
 
 // Loading Component
 const LoadingState = () => (
-    <div className="flex items-center justify-center min-h-screen bg-background/50">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-amber-50/30 to-amber-100/20">
         <div className="text-center space-y-4 animate-in fade-in duration-500">
-            <Coffee className="h-12 w-12 animate-pulse mx-auto text-primary" />
-            <p className="text-muted-foreground">Preparing your cart...</p>
+            <Coffee className="h-16 w-16 animate-pulse mx-auto text-amber-800" />
+            <p className="text-amber-800/70 font-medium">Brewing your cart...</p>
         </div>
     </div>
 );
 
 // Login Required Component
 const LoginRequired = ({ onShopClick }) => (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/20 p-4">
-        <Card className="max-w-md w-full">
-            <CardHeader className="text-center space-y-4">
-                <div className="mx-auto bg-primary/10 w-fit p-4 rounded-full">
-                    <Coffee className="h-12 w-12 text-primary" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-amber-50 to-amber-100/40 p-4">
+        <Card className="max-w-md w-full border-amber-200 shadow-lg">
+            <CardHeader className="text-center space-y-6 pb-6">
+                <div className="mx-auto bg-amber-100 w-fit p-5 rounded-full shadow-inner">
+                    <Coffee className="h-14 w-14 text-amber-800" />
                 </div>
                 <div>
-                    <CardTitle className="text-2xl mb-2">Welcome to Coffee Shop</CardTitle>
-                    <p className="text-muted-foreground">Sign in to view your cart and complete your order</p>
+                    <CardTitle className="text-2xl font-serif mb-3 text-amber-900">Project 1.0 Coffee</CardTitle>
+                    <p className="text-amber-700/80">Sign in to view your cart and complete your order</p>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <Button className="w-full" size="lg" onClick={() => window.location.href = '/login'}>
+            <CardContent className="space-y-4 pb-8">
+                <Button className="w-full bg-amber-800 hover:bg-amber-900 text-amber-50" size="lg" onClick={() => window.location.href = '/login'}>
                     Sign In
                 </Button>
-                <Button variant="outline" className="w-full" size="lg" onClick={onShopClick}>
+                <Button variant="outline" className="w-full border-amber-300 text-amber-800 hover:bg-amber-50" size="lg" onClick={onShopClick}>
                     Continue Shopping
                 </Button>
             </CardContent>
@@ -49,16 +49,16 @@ const LoginRequired = ({ onShopClick }) => (
 
 // Empty Cart Component
 const EmptyCart = ({ onShopClick }) => (
-    <Card className="text-center p-8">
-        <CardContent className="space-y-6">
-            <div className="mx-auto bg-muted w-fit p-6 rounded-full">
-                <Coffee className="h-16 w-16 text-muted-foreground" />
+    <Card className="text-center p-8 border-amber-200 shadow-md bg-white">
+        <CardContent className="space-y-8 py-8">
+            <div className="mx-auto bg-amber-100 w-fit p-8 rounded-full shadow-inner">
+                <Coffee className="h-20 w-20 text-amber-700" />
             </div>
-            <div className="space-y-2">
-                <h3 className="text-2xl font-semibold">Your cart is empty</h3>
-                <p className="text-muted-foreground">Add some delicious items to get started</p>
+            <div className="space-y-3">
+                <h3 className="text-2xl font-serif text-amber-900">Your cart is empty</h3>
+                <p className="text-amber-700/70">Add some delicious items to get started</p>
             </div>
-            <Button size="lg" onClick={onShopClick}>
+            <Button size="lg" className="bg-amber-800 hover:bg-amber-900 text-amber-50 px-8" onClick={onShopClick}>
                 Browse Menu
             </Button>
         </CardContent>
@@ -66,38 +66,59 @@ const EmptyCart = ({ onShopClick }) => (
 );
 
 // Edit Item Dialog Component
+// Edit ItemDialog Component (updated version)
 const EditItemDialog = ({ item, itemOptions, onSave, onClose, isUpdating }) => {
     const [quantity, setQuantity] = useState(item.quantity);
     const [notes, setNotes] = useState(item.notes || '');
+    const [selectedOptionIds, setSelectedOptionIds] = useState(
+        (item.options || []).map(opt => opt.optionId)
+    );
 
     const handleSave = () => {
-        onSave(item.id, { quantity, notes });
+        onSave(item.id, {
+            quantity,
+            notes,
+            options: selectedOptionIds.map(id => ({ optionId: id }))
+        });
+        onClose(); // Close dialog after saving
+    };
+
+    const toggleOption = (optionId) => {
+        setSelectedOptionIds(prev =>
+            prev.includes(optionId)
+                ? prev.filter(id => id !== optionId)
+                : [...prev, optionId]
+        );
     };
 
     return (
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] border-amber-200 bg-amber-50/80 backdrop-blur-sm">
             <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
+                <DialogTitle className="flex items-center gap-2 text-amber-900 font-serif">
                     <span>Edit Order</span>
-                    <Badge variant="outline">{item.item.name}</Badge>
+                    <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300">
+                        {item.item.name}
+                    </Badge>
                 </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-6 py-4">
                 <div className="space-y-4">
-                    <h4 className="font-medium">Quantity</h4>
-                    <div className="flex items-center justify-center bg-muted/30 rounded-lg p-2">
+                    <h4 className="font-medium text-amber-900">Quantity</h4>
+                    <div className="flex items-center justify-center bg-white rounded-lg p-3 border border-amber-200">
                         <Button
                             variant="ghost"
                             size="icon"
+                            className="hover:bg-amber-100 text-amber-800"
                             onClick={() => setQuantity(q => Math.max(1, q - 1))}
                         >
                             <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="w-12 text-center font-medium text-lg">{quantity}</span>
+                        <span className="w-16 text-center font-medium text-lg text-amber-900">{quantity}</span>
                         <Button
                             variant="ghost"
                             size="icon"
+                            className="hover:bg-amber-100 text-amber-800"
                             onClick={() => setQuantity(q => q + 1)}
                         >
                             <Plus className="h-4 w-4" />
@@ -106,27 +127,39 @@ const EditItemDialog = ({ item, itemOptions, onSave, onClose, isUpdating }) => {
                 </div>
 
                 <div className="space-y-2">
-                    <h4 className="font-medium">Special Instructions</h4>
+                    <h4 className="font-medium text-amber-900">Special Instructions</h4>
                     <Textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder="Any special requests for this item?"
-                        className="resize-none"
+                        className="resize-none border-amber-200 focus:border-amber-400 bg-white"
                         rows={3}
                     />
                 </div>
 
                 {itemOptions.length > 0 && (
-                    <div className="space-y-2">
-                        <h4 className="font-medium">Available Add-ons</h4>
+                    <div className="space-y-3">
+                        <h4 className="font-medium text-amber-900">Available Add-ons</h4>
                         <div className="grid gap-2">
                             {itemOptions.map(option => (
                                 <div
                                     key={option.id}
-                                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
+                                    className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${selectedOptionIds.includes(option.id)
+                                        ? 'border-amber-500 bg-amber-50'
+                                        : 'border-amber-200 bg-white hover:bg-amber-50'
+                                        }`}
+                                    onClick={() => toggleOption(option.id)}
                                 >
-                                    <span>{option.name}</span>
-                                    <Badge variant="secondary">+${option.priceModifier.toFixed(2)}</Badge>
+                                    <div className="flex items-center space-x-2">
+                                        <div className={`w-4 h-4 rounded-full ${selectedOptionIds.includes(option.id)
+                                            ? 'bg-amber-500'
+                                            : 'border border-amber-300'
+                                            }`} />
+                                        <span className="text-amber-800">{option.name}</span>
+                                    </div>
+                                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
+                                        +${option.priceModifier.toFixed(2)}
+                                    </Badge>
                                 </div>
                             ))}
                         </div>
@@ -135,10 +168,18 @@ const EditItemDialog = ({ item, itemOptions, onSave, onClose, isUpdating }) => {
             </div>
 
             <CardFooter className="flex justify-end gap-2">
-                <Button variant="outline" onClick={onClose}>
+                <Button
+                    variant="outline"
+                    onClick={() => onClose()}
+                    className="border-amber-300 text-amber-800 hover:bg-amber-100"
+                >
                     Cancel
                 </Button>
-                <Button onClick={handleSave} disabled={isUpdating}>
+                <Button
+                    onClick={handleSave}
+                    disabled={isUpdating}
+                    className="bg-amber-800 hover:bg-amber-900 text-amber-50"
+                >
                     {isUpdating ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -156,6 +197,7 @@ const EditItemDialog = ({ item, itemOptions, onSave, onClose, isUpdating }) => {
 const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
     const [selectedOptions, setSelectedOptions] = useState([]);
     const [itemTotal, setItemTotal] = useState(0);
+    const [dialogOpen, setDialogOpen] = useState(false);
 
     useEffect(() => {
         const fetchCartItemOptions = async () => {
@@ -182,17 +224,12 @@ const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
         };
 
         fetchCartItemOptions();
-    }, [
-        // Check if the item or its quantity has changed
-        item.id,
-        item.item.price,
-        item.quantity
-    ]);
+    }, [item.id, item.item.price, item.quantity, item.options]);
 
     return (
-        <Card className="overflow-hidden transition-all hover:shadow-lg">
+        <Card className="overflow-hidden transition-all hover:shadow-md border-amber-200 bg-white">
             <div className="flex gap-6 p-4">
-                <div className="relative w-32 h-32 rounded-lg overflow-hidden">
+                <div className="relative w-32 h-32 rounded-lg overflow-hidden shadow-sm border border-amber-100">
                     <img
                         src={item.item.imageUrl}
                         alt={item.item.name}
@@ -203,8 +240,8 @@ const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
                 <div className="flex-1 space-y-4">
                     <div className="flex justify-between items-start">
                         <div>
-                            <h3 className="font-semibold text-lg">{item.item.name}</h3>
-                            <div className="flex items-center gap-2 text-muted-foreground">
+                            <h3 className="font-serif text-lg text-amber-900">{item.item.name}</h3>
+                            <div className="flex items-center gap-2 text-amber-700/70 text-sm">
                                 <span>${item.item.price.toFixed(2)} each</span>
                                 <span>×</span>
                                 <span>{item.quantity}</span>
@@ -212,24 +249,27 @@ const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
                         </div>
 
                         <div className="flex gap-1">
-                            <Dialog>
+                            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="hover:bg-accent">
+                                    <Button variant="ghost" size="icon" className="hover:bg-amber-100 text-amber-700">
                                         <Edit2 className="h-4 w-4" />
                                     </Button>
                                 </DialogTrigger>
                                 <EditItemDialog
-                                    item={item}
+                                    item={{ ...item, options: selectedOptions }}
                                     itemOptions={itemOptions}
-                                    onSave={onEdit}
-                                    onClose={() => { }}
+                                    onSave={(itemId, updates) => {
+                                        onEdit(itemId, updates);
+                                        setDialogOpen(false);
+                                    }}
+                                    onClose={() => setDialogOpen(false)}
                                     isUpdating={false}
                                 />
                             </Dialog>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="hover:bg-destructive/10 hover:text-destructive"
+                                className="hover:bg-red-50 hover:text-red-600 text-amber-700"
                                 onClick={() => onDelete(item.id)}
                             >
                                 <Trash2 className="h-4 w-4" />
@@ -238,11 +278,11 @@ const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
                     </div>
 
                     {selectedOptions.length > 0 && (
-                        <div className="space-y-1">
-                            <p className="text-sm text-muted-foreground">Selected Options:</p>
+                        <div className="space-y-2">
+                            <p className="text-sm text-amber-700/70">Selected Options:</p>
                             <div className="flex flex-wrap gap-2">
                                 {selectedOptions.map((opt) => (
-                                    <Badge key={opt.id} variant="secondary">
+                                    <Badge key={opt.id} variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
                                         {opt.option.name} (+${opt.option.priceModifier.toFixed(2)})
                                     </Badge>
                                 ))}
@@ -251,12 +291,12 @@ const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
                     )}
 
                     {item.notes && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs border-amber-200 text-amber-700 bg-amber-50">
                             Note: {item.notes}
                         </Badge>
                     )}
 
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm font-medium text-amber-800">
                         Subtotal: ${itemTotal.toFixed(2)}
                     </div>
                 </div>
@@ -264,7 +304,6 @@ const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
         </Card>
     );
 };
-
 
 // Main Cart Page Component
 const CartPage = () => {
@@ -306,7 +345,6 @@ const CartPage = () => {
         }
     };
 
-
     const fetchItemOptions = async () => {
         try {
             const response = await fetch('/api/itemOptions');
@@ -318,21 +356,17 @@ const CartPage = () => {
         }
     };
 
-
     useEffect(() => {
         fetchCart();
         fetchItemOptions();
     }, []);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         const total = Object.values(itemTotals)
-            .filter((value): value is number => typeof value === 'number')
+            .filter((value) => typeof value === 'number')
             .reduce((sum, value) => sum + value, 0);
         setOrderTotal(total);
     }, [itemTotals]);
-
-
 
     const handleItemPriceUpdate = (itemId, total) => {
         setItemTotals(prev => ({
@@ -340,28 +374,6 @@ const CartPage = () => {
             [itemId]: total
         }));
     };
-
-    if (loading) return <LoadingState />;
-    if (!localStorage.getItem('token')) {
-        return <LoginRequired onShopClick={() => router.push('/pages/coffee-shop')} />;
-    }
-
-    // const calculateTotal = () => {
-    //     return cart.reduce((total, cartEntry) => {
-    //         return total + cartEntry.cartItems.reduce(async (itemTotalPromise, item) => {
-    //             const itemTotal = await itemTotalPromise;
-
-    //             // Fetch options for this cart item
-    //             const response = await fetch(`/api/cart-item/${item.id}`);
-    //             const itemData = await response.json();
-
-    //             const optionsTotal = (itemData.options || []).reduce((optTotal, opt) =>
-    //                 optTotal + (opt.option.priceModifier * item.quantity), 0);
-
-    //             return itemTotal + (item.item.price * item.quantity) + optionsTotal;
-    //         }, Promise.resolve(0));
-    //     }, 0).toFixed(2);
-    // };
 
     const handleDeleteItem = async (itemId) => {
         try {
@@ -423,36 +435,6 @@ const CartPage = () => {
         }
     };
 
-    // const calculateTotal = async () => {
-    //     const total = await cart.reduce(async (totalPromise, cartEntry) => {
-    //         const total = await totalPromise;
-
-    //         const cartEntryTotal = await cartEntry.cartItems.reduce(async (itemTotalPromise, item) => {
-    //             const itemTotal = await itemTotalPromise;
-
-    //             // Fetch options for this cart item
-    //             const response = await fetch(`/api/cart-item/${item.id}`, {
-    //                 method: 'GET',
-    //                 headers: {
-    //                     'Authorization': `Bearer ${localStorage.getItem('token')}`
-    //                 }
-    //             });
-    //             const itemData = await response.json();
-
-    //             const optionsTotal = (itemData.options || []).reduce((optTotal, opt) =>
-    //                 optTotal + (opt.option.priceModifier * item.quantity), 0);
-
-    //             return itemTotal + (item.item.price * item.quantity) + optionsTotal;
-    //         }, Promise.resolve(0));
-
-    //         return total + cartEntryTotal;
-    //     }, Promise.resolve(0));
-
-    //     return total.toFixed(2);
-    // };
-
-
-
     if (loading) return <LoadingState />;
     if (!localStorage.getItem('token')) {
         return <LoginRequired onShopClick={() => router.push('/pages/coffee-shop')} />;
@@ -462,25 +444,25 @@ const CartPage = () => {
     const allCartItems = cartArray.flatMap(entry => entry.cartItems);
     const hasItems = allCartItems.length > 0;
 
-
     return (
-        <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-            <div className="container mx-auto p-4 py-8">
-                <div className="flex items-center justify-between mb-8">
+        <div className="min-h-screen bg-gradient-to-b from-amber-50 to-amber-100/30">
+            <div className="container mx-auto p-4 py-12">
+                <div className="flex items-center justify-between mb-10">
                     <Button
                         variant="ghost"
                         onClick={() => router.push('/pages/coffee-shop')}
-                        className="gap-2"
+                        className="gap-2 text-amber-800 hover:bg-amber-100"
                     >
                         <ChevronLeft className="h-4 w-4" />
                         Continue Shopping
                     </Button>
-                    <h1 className="text-3xl font-bold">Your Cart</h1>
+                    <h1 className="text-3xl font-serif text-amber-900">Your Cart</h1>
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={fetchCart}
                         disabled={isUpdating}
+                        className="text-amber-800 hover:bg-amber-100"
                     >
                         <RefreshCw className={`h-4 w-4 ${isUpdating ? 'animate-spin' : ''}`} />
                     </Button>
@@ -508,31 +490,33 @@ const CartPage = () => {
                         </div>
 
                         <div>
-                            <Card className="sticky top-4">
-                                <CardHeader>
-                                    <CardTitle>Order Summary</CardTitle>
+                            <Card className="sticky top-4 border-amber-200 shadow-md bg-white">
+                                <CardHeader className="border-b border-amber-100">
+                                    <CardTitle className="font-serif text-amber-900">Order Summary</CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
+                                <CardContent className="space-y-6 pt-6">
+                                    <div className="space-y-3">
                                         <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Subtotal</span>
-                                            <span>${orderTotal.toFixed(2)}</span>
+                                            <span className="text-amber-700/70">Subtotal</span>
+                                            <span className="text-amber-900">${orderTotal.toFixed(2)}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Tax</span>
-                                            <span>${(orderTotal * 0.1).toFixed(2)}</span>
+                                            <span className="text-amber-700/70">Tax</span>
+                                            <span className="text-amber-900">${(orderTotal * 0.1).toFixed(2)}</span>
                                         </div>
                                     </div>
-                                    <Separator />
-                                    <div className="flex justify-between text-lg font-semibold">
-                                        <span>Total</span>
-                                        <span>${(orderTotal * 1.1).toFixed(2)}</span>
+                                    <Separator className="bg-amber-200" />
+                                    <div className="flex justify-between text-lg font-medium">
+                                        <span className="text-amber-900">Total</span>
+                                        <span className="text-amber-900 font-serif">${(orderTotal * 1.1).toFixed(2)}</span>
                                     </div>
                                 </CardContent>
-                                <CardFooter>
-                                    <Button className="w-full" size="lg"
-                                        onClick={() => router.push('/pages/checkout')
-                                        }>
+                                <CardFooter className="pt-2 pb-6">
+                                    <Button
+                                        className="w-full bg-amber-800 hover:bg-amber-900 text-amber-50 font-medium py-6"
+                                        size="lg"
+                                        onClick={() => router.push('/pages/checkout')}
+                                    >
                                         Proceed to Checkout
                                     </Button>
                                 </CardFooter>
@@ -546,4 +530,3 @@ const CartPage = () => {
 };
 
 export default CartPage;
-

@@ -27,13 +27,13 @@ const Header = () => {
                         {!user ? (
                             <div className="flex items-center space-x-4">
                                 <Link
-                                    href="/login"
+                                    href="/pages/auth"
                                     className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
                                 >
                                     Login
                                 </Link>
                                 <Link
-                                    href="/register"
+                                    href="/pages/auth"
                                     className="rounded-md border border-gray-900 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50"
                                 >
                                     Register

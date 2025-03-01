@@ -108,9 +108,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     console.log('Logging out user:', user);
 
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include' // Ensures the token cookie is sent to the server
+      });
 
-      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+      if (!response.ok) {
+        throw new Error('Logout request failed');
+      }
+
+      // Remove localStorage token
       localStorage.removeItem('token');
 
       setUser(null);
@@ -118,6 +125,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Logout failed:', error);
     }
   };
+
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>

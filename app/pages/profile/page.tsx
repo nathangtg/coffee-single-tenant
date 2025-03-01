@@ -3,8 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/app/components/ui/header';
+import { useAuth } from '@/context/AuthContext';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export default function ProfilePage() {
+    const { logout } = useAuth();
     const [user, setUser] = useState({
         email: '',
         firstName: '',
@@ -19,6 +24,7 @@ export default function ProfilePage() {
     const [message, setMessage] = useState({ text: '', type: '' });
     const [activeTab, setActiveTab] = useState('profile');
     const [filterStatus, setFilterStatus] = useState('ALL');
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const router = useRouter();
 
@@ -33,7 +39,7 @@ export default function ProfilePage() {
 
                 if (!response.ok) {
                     if (response.status === 401) {
-                        router.push('/login');
+                        router.push('/');
                         return;
                     }
                     throw new Error('Failed to fetch user data');
@@ -112,6 +118,16 @@ export default function ProfilePage() {
         }
     };
 
+    const handleLogout = async () => {
+        try {
+            await logout();
+            router.push('/');
+        } catch (error) {
+            console.error('Logout failed:', error);
+            setMessage({ text: 'Failed to log out. Please try again.', type: 'error' });
+        }
+    };
+
     const formatDate = (dateString) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
@@ -166,14 +182,226 @@ export default function ProfilePage() {
         };
     };
 
-    const generatePDF = (order) => {
-        // In a real application, this would connect to a backend API to generate a PDF
-        // For now, we'll just simulate a download with an alert
-        alert(`Receipt for order ${order.orderNumber} would be downloaded here`);
+    const generatePDF = async (order) => {
+        // Create new document with slightly larger default size
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
 
-        // For a real implementation, you would trigger a download, e.g.:
-        // window.open(`/api/receipts/${order.id}`, '_blank');
+        // Set document properties
+        doc.setProperties({
+            title: `Project 1.0 Receipt - ${order.orderNumber}`,
+            subject: 'Café Receipt',
+            author: 'Project 1.0 Café',
+            creator: 'Project 1.0 POS System'
+        });
+
+        // Add styling variables
+        const primaryColor = [58, 124, 165]; // Blue-ish color
+        const accentColor = [156, 102, 68];  // Coffee brown color
+        const lightGray = [240, 240, 240];
+
+        // Helper function to convert RGB to hex
+        const rgbToHex = (r, g, b) => {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        };
+
+        // Add café logo/header
+        doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.rect(0, 0, 210, 35, 'F');
+
+        // Add white text for header
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(28);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PROJECT 1.0', 105, 15, { align: 'center' });
+
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'normal');
+        doc.text('PREMIUM CAFÉ & DELICATESSEN', 105, 22, { align: 'center' });
+        doc.text('Online Coffee ? We are your solution', 105, 28, { align: 'center' });
+
+        // Add receipt title
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ORDER RECEIPT', 105, 45, { align: 'center' });
+
+        // Create a border for the header information
+        doc.setDrawColor(accentColor[0], accentColor[1], accentColor[2]);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(15, 50, 180, 30, 3, 3);
+
+        // Add order details
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Order Number:', 20, 58);
+        doc.text('Date:', 20, 65);
+        doc.text('Customer:', 20, 72);
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(order.orderNumber, 60, 58);
+        doc.text(formatDate(order.createdAt), 60, 65);
+
+        // Use email if name is not available
+        const customerName = (user && user.firstName && user.lastName)
+            ? `${user.firstName} ${user.lastName}`
+            : order.user.email;
+        doc.text(customerName, 60, 72);
+
+        // Add payment info on the right side
+        doc.setFont('helvetica', 'bold');
+        doc.text('Status:', 120, 58);
+        doc.text('Payment Method:', 120, 65);
+        doc.text('Transaction ID:', 120, 72);
+
+        doc.setFont('helvetica', 'normal');
+        doc.text(order.status, 160, 58);
+
+        // Get payment details if available
+        const paymentMethod = order.payment ? order.payment.paymentMethod.replace('_', ' ') : 'N/A';
+        const transactionId = (order.payment && order.payment.transactionId) ? order.payment.transactionId : 'Pending';
+
+        doc.text(paymentMethod, 160, 65);
+        doc.text(transactionId, 160, 72);
+
+        // Create a table for order items
+        const tableColumn = ["Item", "Qty", "Unit Price", "Options", "Total"];
+        const tableRows = [];
+
+        // Calculate subtotal
+        let subtotal = 0;
+
+        order.orderItems.forEach(item => {
+            // Calculate option prices
+            let optionText = '';
+            let optionsCost = 0;
+
+            if (item.options && item.options.length > 0) {
+                item.options.forEach(opt => {
+                    optionText += `+ ${opt.option.name}\n`;
+                    optionsCost += opt.priceModifier;
+                });
+            }
+
+            const itemTotal = (item.quantity * item.unitPrice) + optionsCost;
+            subtotal += itemTotal;
+
+            const itemData = [
+                item.item.name,
+                item.quantity,
+                `$${item.unitPrice.toFixed(2)}`,
+                optionText || 'No options',
+                `$${itemTotal.toFixed(2)}`
+            ];
+            tableRows.push(itemData);
+        });
+
+        // Use the proper imported function for the main items table
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 90,
+            styles: {
+                fontSize: 10,
+                cellPadding: 3,
+            },
+            headStyles: {
+                fillColor: rgbToHex(primaryColor[0], primaryColor[1], primaryColor[2]),
+                textColor: [255, 255, 255],
+                fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+                fillColor: rgbToHex(lightGray[0], lightGray[1], lightGray[2])
+            },
+            columnStyles: {
+                0: { cellWidth: 60 },
+                3: { cellWidth: 50 }
+            }
+        });
+
+        // Add summary section
+        const tax = order.tax || 0;
+        const discount = order.discount || 0;
+        const total = order.totalAmount;
+
+        autoTable(doc, {
+            body: [
+                [{ content: 'Order Summary', colSpan: 2, styles: { fontStyle: 'bold', fontSize: 12 } }],
+                ['Subtotal:', `$${subtotal.toFixed(2)}`],
+                ['Tax:', `$${tax.toFixed(2)}`],
+                ['Discount:', `$${discount.toFixed(2)}`],
+                [{ content: 'Total:', styles: { fontStyle: 'bold' } }, { content: `$${total.toFixed(2)}`, styles: { fontStyle: 'bold' } }]
+            ],
+            startY: doc.lastAutoTable.finalY + 10,
+            theme: 'plain',
+            styles: {
+                fontSize: 10
+            },
+            columnStyles: {
+                0: { cellWidth: 80, halign: 'right' },
+                1: { cellWidth: 30, halign: 'right' }
+            },
+            margin: { left: 100 }
+        });
+
+        // Add notes if any
+        if (order.notes) {
+            autoTable(doc, {
+                body: [
+                    [{ content: 'Order Notes:', styles: { fontStyle: 'bold' } }],
+                    [order.notes]
+                ],
+                startY: doc.lastAutoTable.finalY + 10,
+                theme: 'plain',
+                styles: {
+                    fontSize: 10
+                }
+            });
+        }
+
+        // Add a thumbnail image of the first item if available
+        if (order.orderItems.length > 0 && order.orderItems[0].item.imageUrl) {
+            try {
+
+                const imgData = order.orderItems[0].item.imageUrl;
+
+
+                doc.setFontSize(9);
+                doc.setTextColor(100, 100, 100);
+                doc.text('* Image preview would appear here in the actual implementation', 15, doc.lastAutoTable.finalY + 15);
+            } catch (e) {
+                console.error('Could not add image to PDF', e);
+            }
+        }
+
+        // Add footer
+        const pageCount = doc.internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+
+            // Add footer border
+            doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.setFillColor(252, 252, 252);
+            doc.roundedRect(15, 270, 180, 20, 2, 2, 'FD');
+
+            // Footer text
+            doc.text('Thank you for visiting Project 1.0 Café!', 105, 277, { align: 'center' });
+            doc.text('www.project10cafe.com | @project10cafe', 105, 282, { align: 'center' });
+            doc.text(`Receipt generated: ${new Date().toLocaleString()}`, 105, 287, { align: 'center' });
+        }
+
+        // Save the PDF
+        doc.save(`Project1.0-Receipt-${order.orderNumber}.pdf`);
     };
+
+
+
 
     const filteredOrders = filterStatus === 'ALL'
         ? orders
@@ -181,7 +409,7 @@ export default function ProfilePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 py-12 px-4">
+            <div className="min-h-screen bg-gray-100 py-12 px-4">
                 <div className="max-w-4xl mx-auto">
                     <div className="text-center">
                         <div className="animate-pulse h-6 w-48 bg-gray-200 rounded mb-4 mx-auto"></div>
@@ -195,35 +423,49 @@ export default function ProfilePage() {
     const orderStats = calculateOrderStats();
 
     return (
-        <div className=" bg-gray-50">
+        <div className="min-h-screen bg-gray-100">
             <Header />
-            <div className="max-w-4xl py-12 px-4 mx-auto">
-                <h1 className="text-3xl font-bold text-center mb-8">My Account</h1>
+            <div className="max-w-5xl py-12 px-4 mx-auto">
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-3xl font-bold">My Account</h1>
+                    <button
+                        onClick={() => setShowLogoutConfirm(true)}
+                        className="px-4 py-2 text-sm bg-red-50 text-red-600 rounded-md border border-red-200 hover:bg-red-100 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                    >
+                        Log Out
+                    </button>
+                </div>
 
                 {message.text && (
-                    <div className={`mb-6 p-4 rounded ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <div className={`mb-6 p-4 rounded-md shadow-sm ${message.type === 'success' ? 'bg-green-50 text-green-700 border-l-4 border-green-500' : 'bg-red-50 text-red-700 border-l-4 border-red-500'}`}>
                         {message.text}
                     </div>
                 )}
 
-                <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6">
                     <div className="flex border-b">
                         <button
-                            className={`px-6 py-3 font-medium text-sm ${activeTab === 'profile' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-500'}`}
+                            className={`px-6 py-4 font-medium transition-colors ${activeTab === 'profile' ? 'text-gray-900 border-b-2 border-gray-900 bg-gray-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
                             onClick={() => setActiveTab('profile')}
                         >
                             Profile
                         </button>
                         <button
-                            className={`px-6 py-3 font-medium text-sm ${activeTab === 'orders' ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-500'}`}
+                            className={`px-6 py-4 font-medium transition-colors ${activeTab === 'orders' ? 'text-gray-900 border-b-2 border-gray-900 bg-gray-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
                             onClick={() => setActiveTab('orders')}
                         >
                             Order History
                         </button>
+                        <button
+                            className={`px-6 py-4 font-medium transition-colors ${activeTab === 'security' ? 'text-gray-900 border-b-2 border-gray-900 bg-gray-50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                            onClick={() => setActiveTab('security')}
+                        >
+                            Security
+                        </button>
                     </div>
 
                     {activeTab === 'profile' && (
-                        <div className="p-6">
+                        <div className="p-8">
                             <form onSubmit={handleSubmit}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
@@ -237,7 +479,7 @@ export default function ProfilePage() {
                                             value={user.firstName || ''}
                                             onChange={handleChange}
                                             required
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                     </div>
 
@@ -252,7 +494,7 @@ export default function ProfilePage() {
                                             value={user.lastName || ''}
                                             onChange={handleChange}
                                             required
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                     </div>
 
@@ -267,7 +509,7 @@ export default function ProfilePage() {
                                             value={user.email || ''}
                                             onChange={handleChange}
                                             required
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                     </div>
 
@@ -281,7 +523,7 @@ export default function ProfilePage() {
                                             name="phone"
                                             value={user.phone || ''}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                     </div>
 
@@ -295,7 +537,7 @@ export default function ProfilePage() {
                                             value={user.address || ''}
                                             onChange={handleChange}
                                             rows="3"
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         ></textarea>
                                     </div>
                                 </div>
@@ -304,7 +546,7 @@ export default function ProfilePage() {
                                     <button
                                         type="submit"
                                         disabled={updating}
-                                        className={`w-full md:w-auto px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2 ${updating ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                        className={`px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors ${updating ? 'opacity-75 cursor-not-allowed' : ''}`}
                                     >
                                         {updating ? 'Updating...' : 'Update Profile'}
                                     </button>
@@ -314,32 +556,38 @@ export default function ProfilePage() {
                     )}
 
                     {activeTab === 'orders' && (
-                        <div className="p-6">
+                        <div className="p-8">
                             {orders.length === 0 ? (
-                                <div className="text-center py-8">
-                                    <p className="text-gray-500">You haven't placed any orders yet.</p>
+                                <div className="text-center py-16">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                    </svg>
+                                    <p className="text-gray-500 text-lg">You haven't placed any orders yet.</p>
+                                    <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                                        Start Shopping
+                                    </button>
                                 </div>
                             ) : (
                                 <>
                                     {/* Order Statistics Summary */}
-                                    <div className="mb-8 bg-gray-50 rounded-lg p-6">
+                                    <div className="mb-8 bg-gray-50 rounded-xl p-6">
                                         <h2 className="text-lg font-medium mb-4">Your Order Summary</h2>
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                            <div className="bg-white p-4 rounded-lg shadow-sm">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                            <div className="bg-white p-4 rounded-xl shadow-sm">
                                                 <p className="text-sm text-gray-500">Total Spent</p>
                                                 <p className="text-2xl font-bold">${orderStats.total}</p>
                                             </div>
-                                            <div className="bg-white p-4 rounded-lg shadow-sm">
+                                            <div className="bg-white p-4 rounded-xl shadow-sm">
                                                 <p className="text-sm text-gray-500">Orders Placed</p>
                                                 <p className="text-2xl font-bold">{orderStats.count}</p>
                                             </div>
-                                            <div className="bg-white p-4 rounded-lg shadow-sm">
+                                            <div className="bg-white p-4 rounded-xl shadow-sm">
                                                 <p className="text-sm text-gray-500">Average Order</p>
                                                 <p className="text-2xl font-bold">${orderStats.average}</p>
                                             </div>
-                                            <div className="bg-white p-4 rounded-lg shadow-sm">
+                                            <div className="bg-white p-4 rounded-xl shadow-sm">
                                                 <p className="text-sm text-gray-500">Most Ordered</p>
-                                                <p className="text-lg font-semibold">{orderStats.mostOrdered || 'N/A'}</p>
+                                                <p className="text-lg font-semibold truncate">{orderStats.mostOrdered || 'N/A'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -353,7 +601,7 @@ export default function ProfilePage() {
                                                 id="filterStatus"
                                                 value={filterStatus}
                                                 onChange={(e) => setFilterStatus(e.target.value)}
-                                                className="border border-gray-300 rounded px-3 py-1 text-sm"
+                                                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             >
                                                 <option value="ALL">All Orders</option>
                                                 <option value="PENDING">Pending</option>
@@ -367,11 +615,11 @@ export default function ProfilePage() {
                                     {/* Order List */}
                                     <div className="space-y-6">
                                         {filteredOrders.length === 0 ? (
-                                            <p className="text-center text-gray-500 py-4">No orders match the selected filter.</p>
+                                            <p className="text-center text-gray-500 py-8 bg-gray-50 rounded-xl">No orders match the selected filter.</p>
                                         ) : (
                                             filteredOrders.map((order) => (
-                                                <div key={order.id} className="border rounded-lg overflow-hidden">
-                                                    <div className="bg-gray-50 px-4 py-3 border-b flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                                                <div key={order.id} className="border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                                    <div className="bg-gray-50 px-6 py-4 border-b flex flex-col sm:flex-row sm:justify-between sm:items-center">
                                                         <div>
                                                             <span className="text-sm text-gray-500">Order #</span>
                                                             <span className="ml-1 font-medium">{order.orderNumber}</span>
@@ -400,37 +648,52 @@ export default function ProfilePage() {
                                                         </div>
                                                     </div>
 
-                                                    <div className="p-4">
-                                                        <div className="space-y-3">
+                                                    <div className="p-6">
+                                                        <div className="space-y-4">
                                                             {order.orderItems.map((item) => (
-                                                                <div key={item.id} className="flex justify-between items-center">
+                                                                <div key={item.id} className="flex justify-between items-center hover:bg-gray-50 p-2 rounded-lg transition-colors">
                                                                     <div className="flex items-center">
-                                                                        <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                                                                            {item.item.imageUrl && (
+                                                                        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200">
+                                                                            {item.item.imageUrl ? (
                                                                                 <img
                                                                                     src={item.item.imageUrl}
                                                                                     alt={item.item.name}
                                                                                     className="h-full w-full object-cover object-center"
                                                                                 />
+                                                                            ) : (
+                                                                                <div className="h-full w-full bg-gray-100 flex items-center justify-center">
+                                                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                                    </svg>
+                                                                                </div>
                                                                             )}
                                                                         </div>
                                                                         <div className="ml-4">
-                                                                            <h3 className="text-sm font-medium text-gray-900">{item.item.name}</h3>
+                                                                            <h3 className="text-base font-medium text-gray-900">{item.item.name}</h3>
                                                                             <div className="flex gap-3 mt-1">
                                                                                 <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                                                                                 <p className="text-sm text-gray-500">Unit: ${item.unitPrice.toFixed(2)}</p>
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                    <p className="text-sm font-medium text-gray-900">${(item.unitPrice * item.quantity).toFixed(2)}</p>
+                                                                    <p className="text-base font-medium text-gray-900">${(item.unitPrice * item.quantity).toFixed(2)}</p>
                                                                 </div>
                                                             ))}
                                                         </div>
 
-                                                        <div className="border-t mt-4 pt-4">
+                                                        <div className="border-t mt-6 pt-4">
                                                             <div className="flex justify-between items-center mb-2">
                                                                 <div className="text-sm text-gray-500">Payment Method</div>
-                                                                <div className="text-sm font-medium">{order.payment.paymentMethod}</div>
+                                                                <div className="text-sm font-medium">
+                                                                    {order.payment.paymentMethod === 'CREDIT_CARD' ? (
+                                                                        <span className="flex items-center gap-2">
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                                                            </svg>
+                                                                            Credit Card
+                                                                        </span>
+                                                                    ) : order.payment.paymentMethod}
+                                                                </div>
                                                             </div>
 
                                                             {order.discount > 0 && (
@@ -447,22 +710,22 @@ export default function ProfilePage() {
                                                                 </div>
                                                             )}
 
-                                                            <div className="flex justify-between items-center pt-2 border-t mt-2">
+                                                            <div className="flex justify-between items-center pt-3 border-t mt-3">
                                                                 <div className="text-base font-medium">Total</div>
                                                                 <div className="text-lg font-bold">${order.totalAmount.toFixed(2)}</div>
                                                             </div>
 
                                                             {order.notes && (
-                                                                <div className="mt-3 pt-3 border-t">
+                                                                <div className="mt-4 pt-3 border-t">
                                                                     <p className="text-sm text-gray-500">Notes:</p>
-                                                                    <p className="text-sm">{order.notes}</p>
+                                                                    <p className="text-sm mt-1 bg-gray-50 p-3 rounded-lg">{order.notes}</p>
                                                                 </div>
                                                             )}
 
                                                             {order.status === 'COMPLETED' && (
                                                                 <div className="mt-4 text-center">
                                                                     <button
-                                                                        className="px-4 py-2 bg-gray-900 text-white text-sm rounded hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:ring-offset-2"
+                                                                        className="px-5 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                                                                         onClick={() => generatePDF(order)}
                                                                     >
                                                                         Download Receipt
@@ -479,8 +742,88 @@ export default function ProfilePage() {
                             )}
                         </div>
                     )}
+
+                    {activeTab === 'security' && (
+                        <div className="p-8">
+                            <h2 className="text-lg font-medium mb-6">Account Security</h2>
+
+                            <div className="space-y-6">
+                                <div className="bg-gray-50 p-6 rounded-xl">
+                                    <h3 className="text-base font-medium mb-4">Password</h3>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        It&apos;s a good idea to use a strong password that you don&apos;t use elsewhere.
+                                    </p>
+                                    <button
+                                        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                                    >
+                                        Change Password
+                                    </button>
+                                </div>
+
+                                <div className="bg-gray-50 p-6 rounded-xl">
+                                    <h3 className="text-base font-medium mb-4">Two-Factor Authentication</h3>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Add an extra layer of security to your account by enabling two-factor authentication
+                                    </p>
+                                    <button
+                                        className="px-4 py-2 border border-gray-300 bg-white text-sm rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                                    >
+                                        Enable 2FA
+                                    </button>
+                                </div>
+
+                                <div className="bg-gray-50 p-6 rounded-xl">
+                                    <h3 className="text-base font-medium mb-4">Account Sessions</h3>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Manage your active sessions and sign out from other devices
+                                    </p>
+                                    <button
+                                        className="px-4 py-2 border border-gray-300 bg-white text-sm rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                                    >
+                                        Manage Sessions
+                                    </button>
+                                </div>
+
+                                <div className="border-t pt-6 mt-6">
+                                    <h3 className="text-base font-medium text-red-600 mb-4">Danger Zone</h3>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Once you delete your account, there is no going back. Please be certain.
+                                    </p>
+                                    <button
+                                        className="px-4 py-2 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                                    >
+                                        Delete Account
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+                        <h3 className="text-lg font-medium mb-2">Log Out</h3>
+                        <p className="text-gray-600 mb-6">Are you sure you want to log out of your account?</p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowLogoutConfirm(false)}
+                                className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="px-4 py-2 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                            >
+                                Log Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
