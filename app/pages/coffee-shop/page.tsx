@@ -10,6 +10,7 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { Badge } from '@/app/components/ui/badge';
 import { ScrollArea } from '@/app/components/ui/scroll-area';
 import { Separator } from '@radix-ui/react-select';
+import Image from 'next/image';
 
 const CoffeeShop = () => {
     const [categories, setCategories] = useState([]);
@@ -260,10 +261,12 @@ const CoffeeShop = () => {
 
                                     <Card className="overflow-hidden border-amber-200 shadow-md">
                                         <div className="relative h-64 md:h-80">
-                                            <img
+                                            <Image
                                                 src={selectedItem.imageUrl || 'https://placehold.co/600x400/e9d8c2/5f4339?text=Project+1.0'}
                                                 alt={selectedItem.name}
-                                                className="w-full h-full object-cover"
+                                                layout="fill"
+                                                objectFit="cover"
+                                                className="w-full h-full"
                                             />
                                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
                                                 <Badge className="mb-2 bg-amber-700 hover:bg-amber-600">
@@ -385,10 +388,13 @@ const CoffeeShop = () => {
                                                 onClick={() => fetchItemDetails(item.id)}
                                             >
                                                 <div className="relative h-48 overflow-hidden">
-                                                    <img
+                                                    <Image
                                                         src={item.imageUrl || 'https://placehold.co/600x400/e9d8c2/5f4339?text=Project+1.0'}
                                                         alt={item.name}
                                                         className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                                        width={600}
+                                                        height={400}
+                                                        layout="responsive"
                                                     />
                                                     {item.isAvailable && (
                                                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
