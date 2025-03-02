@@ -253,7 +253,7 @@ model StoreSettings {
   phone          String?
   email          String?
   logoUrl        String?
-  openingHours   Json?    // Store as JSON: {"monday": {"open": "08:00", "close": "20:00"}, ...}
+  openingHours   Json?    
   taxRate        Float    @default(0)
   currencySymbol String   @default("$")
   createdAt      DateTime @default(now())
