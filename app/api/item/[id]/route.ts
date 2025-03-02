@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { isAdmin } from '@/lib/auth-utils';
 import { ItemOptionData } from '@/enums/ItemOptionData';
-import { unlink } from 'fs/promises';
+import { mkdir, unlink, writeFile } from 'fs/promises';
 import path from 'path';
+import { v4 } from 'uuid';
 
 const prisma = new PrismaClient();
 
@@ -56,7 +57,6 @@ export async function PUT(
     req: NextRequest,
     { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
-
     const resolvedParams = await params;
     const { id } = resolvedParams;
 
@@ -70,16 +70,37 @@ export async function PUT(
         }
 
         const data = await req.json();
-        const { name, description, price, imageUrl, isAvailable, preparationTime, categoryId, options } = data;
-
-        if (!id) {
-            return NextResponse.json({ message: 'Item ID is required' }, { status: 400 });
-        }
+        const { name, description, price, image, isAvailable, preparationTime, categoryId, options } = data;
 
         // Check if item exists
         const existingItem = await prisma.item.findUnique({ where: { id } });
         if (!existingItem) {
             return NextResponse.json({ message: 'Item not found' }, { status: 404 });
+        }
+
+        let imagePath = existingItem.imageUrl;
+
+        // Process image if it's a new base64-encoded string
+        if (image && typeof image === 'string' && image.startsWith('data:image/')) {
+            const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'items');
+            await mkdir(uploadDir, { recursive: true });
+
+            // Extract file type from base64 string
+            const match = image.match(/^data:image\/(\w+);base64,/);
+            if (!match) {
+                return NextResponse.json({ message: 'Invalid image format' }, { status: 400 });
+            }
+
+            const fileExtension = match[1]; // e.g., png, jpg
+            const fileName = `${v4()}.${fileExtension}`;
+            const filePath = path.join(uploadDir, fileName);
+
+            // Convert base64 to buffer and save
+            const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+            const buffer = Buffer.from(base64Data, 'base64');
+            await writeFile(filePath, buffer);
+
+            imagePath = `/uploads/items/${fileName}`;
         }
 
         // Update the item
@@ -89,8 +110,8 @@ export async function PUT(
                 name: name !== undefined ? name : undefined,
                 description: description !== undefined ? description : undefined,
                 price: price !== undefined ? parseFloat(price.toString()) : undefined,
-                imageUrl: imageUrl !== undefined ? imageUrl : undefined,
-                isAvailable: isAvailable !== undefined ? isAvailable : undefined,
+                imageUrl: imagePath,
+                isAvailable: isAvailable !== undefined ? isAvailable === 'true' || isAvailable === true : undefined,
                 preparationTime: preparationTime !== undefined ? parseInt(preparationTime.toString()) : undefined,
                 categoryId: categoryId !== undefined ? categoryId : undefined,
             },
@@ -98,10 +119,8 @@ export async function PUT(
 
         // Handle options update if provided
         if (options) {
-            // First delete existing options
             await prisma.itemOption.deleteMany({ where: { itemId: id } });
 
-            // Then create new options
             if (options.length > 0) {
                 await prisma.itemOption.createMany({
                     data: options.map((opt: ItemOptionData) => ({
@@ -125,9 +144,11 @@ export async function PUT(
         return NextResponse.json(finalItem);
     } catch (error) {
         console.error('Error updating item:', error);
-        return NextResponse.json({ message: 'Server error' }, { status: 500 });
+        return NextResponse.json({ message: 'Server error', error: (error as Error).message }, { status: 500 });
     }
 }
+
+
 
 // DELETE item (admin only)
 export async function DELETE(

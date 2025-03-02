@@ -84,12 +84,10 @@ const HomePage = () => {
 
         // Format the groups
         return Object.entries(hourGroups).map(([hours, days]) => {
-            // Check if the days are consecutive for range formatting
             if (days.length > 2) {
                 const allDays = Object.values(weekdays);
                 const indexes = days.map(day => allDays.indexOf(day)).sort((a, b) => a - b);
 
-                // Check if indexes are consecutive
                 let isConsecutive = true;
                 for (let i = 1; i < indexes.length; i++) {
                     if (indexes[i] !== indexes[i - 1] + 1) {
