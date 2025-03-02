@@ -23,11 +23,60 @@ const CoffeeShop = () => {
     const [itemNotes, setItemNotes] = useState("");
     const [quantity, setQuantity] = useState(1);
     const [isAddingToCart, setIsAddingToCart] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
+    const [restaurantName, setRestaurantName] = useState(null);
 
     useEffect(() => {
         fetchCategories();
         fetchCart();
+        fetchRestaurantSettings();
     }, []);
+
+    // Update the fetchRestaurantSettings function to set isOpen state
+    const fetchRestaurantSettings = async () => {
+        try {
+            const response = await fetch('/api/restaurant-settings');
+            const data = await response.json();
+            console.log('Restaurant settings:', data);
+
+            // Check if the shop is currently open
+            const isCurrentlyOpen = checkIfOpen(data.openingHours);
+            setIsOpen(isCurrentlyOpen);
+            setRestaurantName(data.storeName);
+        } catch (error) {
+            console.error('Error fetching restaurant settings:', error);
+        }
+    };
+
+    const checkIfOpen = (openingHours) => {
+        const now = new Date();
+
+        // Convert current time to GMT+8
+        const gmt8Time = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const currentDay = days[gmt8Time.getDay()];
+
+        // Get hours for current day
+        const dayHours = openingHours[currentDay];
+
+        // If the store is explicitly marked as closed, return false
+        if (!dayHours || dayHours.closed) return false;
+
+        // Get current time in HH:MM (24-hour format)
+        const currentTime = gmt8Time.toLocaleTimeString('en-US', {
+            timeZone: 'Asia/Kuala_Lumpur',
+            hourCycle: 'h23',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        // Check if the current time is within the opening hours
+        return currentTime >= dayHours.open && currentTime <= dayHours.close;
+    };
+
+
+
 
     const fetchCart = async () => {
         try {
@@ -205,8 +254,13 @@ const CoffeeShop = () => {
                     <div className="flex items-center space-x-3">
                         <Coffee className="h-8 w-8 text-amber-700" />
                         <div>
-                            <h1 className="text-xl md:text-2xl font-bold text-amber-900">Project 1.0</h1>
-                            <p className="text-sm text-amber-800 hidden md:block">Artisan coffee, expertly crafted</p>
+                            <h1 className="text-xl md:text-2xl font-bold text-amber-900">{restaurantName}</h1>
+                            <div className="flex items-center mt-1 space-x-2">
+                                <p className="text-sm text-amber-800 hidden md:block">Artisan coffee, expertly crafted</p>
+                                <Badge className={isOpen ? "bg-green-600" : "bg-red-500"}>
+                                    {isOpen ? "Open Now" : "Closed"}
+                                </Badge>
+                            </div>
                         </div>
                     </div>
                     <Button
@@ -221,6 +275,21 @@ const CoffeeShop = () => {
                 </header>
 
                 <Separator className="mb-6 bg-amber-200" />
+
+                {!isOpen && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                        <div className="flex items-start">
+                            <Clock className="h-5 w-5 text-red-500 mt-0.5 mr-2" />
+                            <div>
+                                <h3 className="font-medium text-red-800">We are currently closed</h3>
+                                <p className="text-sm text-red-700 mt-1">
+                                    You can browse our menu, but ordering is unavailable until we open.
+                                    Please check back during our business hours.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Main content */}
                 <main>
@@ -358,7 +427,7 @@ const CoffeeShop = () => {
                                                 <Button
                                                     size="lg"
                                                     onClick={handleAddToCart}
-                                                    disabled={isAddingToCart || !selectedItem.isAvailable}
+                                                    disabled={isAddingToCart || !selectedItem.isAvailable || !isOpen}
                                                     className="w-full sm:w-auto min-w-[140px] bg-amber-700 hover:bg-amber-600 text-white"
                                                 >
                                                     {isAddingToCart ? (
@@ -366,6 +435,8 @@ const CoffeeShop = () => {
                                                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
                                                             Adding...
                                                         </>
+                                                    ) : !isOpen ? (
+                                                        'Shop Closed'
                                                     ) : (
                                                         'Add to Cart'
                                                     )}
@@ -384,8 +455,9 @@ const CoffeeShop = () => {
                                         items.map(item => (
                                             <Card
                                                 key={item.id}
-                                                className={`group transition-all duration-300 hover:shadow-lg border-amber-200 ${item.isAvailable ? 'opacity-60' : ''}`}
-                                                onClick={() => fetchItemDetails(item.id)}
+                                                className={`group transition-all duration-300 hover:shadow-lg border-amber-200 ${item.isAvailable || !isOpen ? 'opacity-60' : ''
+                                                    }`}
+                                                onClick={() => isOpen ? fetchItemDetails(item.id) : null}
                                             >
                                                 <div className="relative h-48 overflow-hidden">
                                                     <Image
@@ -432,6 +504,13 @@ const CoffeeShop = () => {
                                                         View Details
                                                     </Button>
                                                 </CardFooter>
+                                                {(item.isAvailable) && (
+                                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                        <Badge variant="destructive" className="text-base py-2">
+                                                            {item.isAvailable ? 'Currently Unavailable' : 'Shop Closed'}
+                                                        </Badge>
+                                                    </div>
+                                                )}
                                             </Card>
                                         ))
                                     )}

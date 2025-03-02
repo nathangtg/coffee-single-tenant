@@ -1,20 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 
 const Header = () => {
     const { user } = useAuth();
+    const [restaurant, setRestaurant] = useState(null);
+
+    useEffect(() => {
+        fetchRestaurantSettings();
+    }, []);
+
+    const fetchRestaurantSettings = async () => {
+        try {
+            const response = await fetch('/api/restaurant-settings');
+            const data = await response.json();
+            setRestaurant(data);
+        } catch (error) {
+            console.error('Error fetching restaurant settings:', error);
+        }
+    };
 
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-sm">
             <div className="container mx-auto px-4">
                 <div className="flex h-16 items-center justify-between">
                     <Link href="/" className="flex items-center space-x-2">
-                        <div className="relative h-8 w-8">
-                        </div>
-                        <span className="font-mono text-xl font-bold">Project 1.0</span>
+                        {restaurant?.logoUrl && (
+                            <img src={restaurant.logoUrl} alt="Logo" className="h-8 w-8 object-cover" />
+                        )}
+                        <span className="font-mono text-xl font-bold">
+                            {restaurant?.storeName || 'Loading...'}
+                        </span>
                     </Link>
 
                     <nav className="flex items-center space-x-6">

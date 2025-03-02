@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Coffee, Users, Clock, Award, ChefHat, Leaf, PackageCheck, ThumbsUp, Heart, ArrowRight } from 'lucide-react';
+import { Coffee, Users, Clock, Award, ChefHat, Leaf, PackageCheck, ThumbsUp, Heart, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const fadeInUp = {
@@ -22,23 +22,93 @@ const staggerContainer = {
 
 const HomePage = () => {
     const [items, setItems] = useState([]);
+    const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchItems = async () => {
+        const fetchData = async () => {
             try {
-                const response = await fetch('/api/item');
-                const data = await response.json();
-                setItems(data);
+                // Fetch menu items
+                const itemsResponse = await fetch('/api/item');
+                const itemsData = await itemsResponse.json();
+                // Limit to 6 items maximum
+                setItems(itemsData.slice(0, 6));
+
+                // Fetch restaurant settings
+                const settingsResponse = await fetch('/api/restaurant-settings');
+                const settingsData = await settingsResponse.json();
+                setSettings(settingsData);
             } catch (error) {
-                console.error('Error fetching items:', error);
+                console.error('Error fetching data:', error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchItems();
+        fetchData();
     }, []);
+
+    // Format opening hours for display
+    const formatOpeningHours = (settings) => {
+        if (!settings || !settings.openingHours) return [];
+
+        const weekdays = {
+            monday: "Mon",
+            tuesday: "Tue",
+            wednesday: "Wed",
+            thursday: "Thu",
+            friday: "Fri",
+            saturday: "Sat",
+            sunday: "Sun"
+        };
+
+        const formatTime = (time) => {
+            const [hours, minutes] = time.split(':');
+            const hour = parseInt(hours, 10);
+            const period = hour >= 12 ? 'pm' : 'am';
+            const formattedHour = hour % 12 || 12;
+            return `${formattedHour}${period}`;
+        };
+
+        // Group days with the same hours
+        const hourGroups = {};
+        Object.entries(settings.openingHours).forEach(([day, hours]) => {
+            if (hours.closed) return;
+
+            const timeString = `${formatTime(hours.open)} - ${formatTime(hours.close)}`;
+            if (!hourGroups[timeString]) {
+                hourGroups[timeString] = [];
+            }
+            hourGroups[timeString].push(weekdays[day]);
+        });
+
+        // Format the groups
+        return Object.entries(hourGroups).map(([hours, days]) => {
+            // Check if the days are consecutive for range formatting
+            if (days.length > 2) {
+                const allDays = Object.values(weekdays);
+                const indexes = days.map(day => allDays.indexOf(day)).sort((a, b) => a - b);
+
+                // Check if indexes are consecutive
+                let isConsecutive = true;
+                for (let i = 1; i < indexes.length; i++) {
+                    if (indexes[i] !== indexes[i - 1] + 1) {
+                        isConsecutive = false;
+                        break;
+                    }
+                }
+
+                if (isConsecutive) {
+                    return `${days[0]}-${days[days.length - 1]}: ${hours}`;
+                }
+            }
+
+            // Default format
+            return `${days.join(', ')}: ${hours}`;
+        });
+    };
+
+    const hoursDisplay = settings ? formatOpeningHours(settings) : [];
 
     return (
         <div className="min-h-screen bg-white">
@@ -47,7 +117,7 @@ const HomePage = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.8 }}
-                className="relative h-[80vh] w-full"
+                className="relative h-[85vh] w-full"
             >
                 <div className="absolute inset-0">
                     <Image
@@ -69,9 +139,9 @@ const HomePage = () => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ delay: 0.5, duration: 0.5 }}
-                            className="mb-6 font-serif text-6xl font-bold tracking-tight"
+                            className="mb-6 font-serif text-7xl font-bold tracking-tight"
                         >
-                            Project 1.0
+                            {settings?.storeName || 'Project 1.0'}
                         </motion.h1>
                         <motion.p
                             initial={{ y: 20, opacity: 0 }}
@@ -103,6 +173,38 @@ const HomePage = () => {
                 </motion.div>
             </motion.section>
 
+            {/* Quick Info Bar */}
+            <motion.section
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                className="bg-amber-900 py-6 text-white"
+            >
+                <div className="container mx-auto px-4">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        {settings && (
+                            <>
+                                <div className="flex items-center">
+                                    <MapPin className="h-5 w-5 mr-2" />
+                                    <span>{settings.address}</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <Phone className="h-5 w-5 mr-2" />
+                                    <span>{settings.phone}</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <Mail className="h-5 w-5 mr-2" />
+                                    <span>{settings.email}</span>
+                                </div>
+                                <div className="bg-amber-800 px-4 py-2 rounded-lg">
+                                    <span className="font-semibold">Now Open</span>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </motion.section>
+
             {/* About Us Section */}
             <motion.section
                 id="about"
@@ -125,9 +227,9 @@ const HomePage = () => {
                             variants={fadeInUp}
                             className="flex flex-col justify-center"
                         >
-                            <h3 className="mb-6 font-serif text-3xl font-semibold text-stone-800">Welcome to Project 1.0</h3>
+                            <h3 className="mb-6 font-serif text-3xl font-semibold text-stone-800">Welcome to {settings?.storeName || 'Project 1.0'}</h3>
                             <p className="mb-6 text-lg text-stone-600 leading-relaxed">
-                                At Project 1.0, we believe in creating more than just a coffee shop – we are crafting experiences that awaken your senses and build community.
+                                At {settings?.storeName || 'Project 1.0'}, we believe in creating more than just a coffee shop – we are crafting experiences that awaken your senses and build community.
                             </p>
                             <p className="text-lg text-stone-600 leading-relaxed">
                                 Every cup we serve is a result of careful selection, precise roasting, and expert preparation. We source our beans from sustainable farms worldwide, ensuring both extraordinary quality and ethical practices.
@@ -210,7 +312,7 @@ const HomePage = () => {
                                     className="group overflow-hidden rounded-xl bg-white border border-stone-200 shadow-sm transition-all hover:shadow-lg"
                                 >
                                     <Link href={`/pages/coffee-shop/items/${item.id}`}>
-                                        <div className="relative h-56 w-full overflow-hidden">
+                                        <div className="relative h-64 w-full overflow-hidden">
                                             <Image
                                                 src={item.imageUrl}
                                                 alt={item.name}
@@ -221,23 +323,28 @@ const HomePage = () => {
                                                 <div className="flex items-center justify-between">
                                                     <h3 className="font-medium text-white text-lg">{item.name}</h3>
                                                     <span className="rounded-full bg-amber-700 px-3 py-1 text-sm font-bold text-white">
-                                                        ${item.price}
+                                                        {settings?.currencySymbol || '$'}{item.price}
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="p-6">
-                                            <p className="mb-4 text-stone-600">{item.description}</p>
+                                            <p className="mb-4 text-stone-600 line-clamp-2">{item.description}</p>
                                             <div className="space-y-2">
-                                                {item.options.map((option) => (
+                                                {item.options.slice(0, 2).map((option) => (
                                                     <div key={option.id} className="flex items-center justify-between text-sm border-b border-stone-100 pb-2">
                                                         <span className="text-stone-700">{option.name}</span>
-                                                        <span className="text-amber-700 font-medium">+${option.priceModifier}</span>
+                                                        <span className="text-amber-700 font-medium">+{settings?.currencySymbol || '$'}{option.priceModifier}</span>
                                                     </div>
                                                 ))}
+                                                {item.options.length > 2 && (
+                                                    <div className="text-sm text-stone-500 italic">
+                                                        +{item.options.length - 2} more options
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="mt-6 flex justify-end">
-                                                <span className="inline-flex items-center text-amber-700 font-medium text-sm">
+                                                <span className="inline-flex items-center text-amber-700 font-medium text-sm group-hover:underline">
                                                     View details
                                                     <ArrowRight className="ml-1 h-4 w-4" />
                                                 </span>
@@ -371,13 +478,85 @@ const HomePage = () => {
                 </div>
             </section>
 
-            {/* Newsletter Section */}
+            {/* Hours & Location Section */}
             <motion.section
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6 }}
                 className="py-24 bg-white"
+            >
+                <div className="container mx-auto px-4">
+                    <h2 className="mb-16 text-center font-serif text-4xl font-bold text-stone-800">Hours & Location</h2>
+
+                    <div className="grid md:grid-cols-2 gap-12">
+                        <div className="bg-stone-50 p-8 rounded-xl shadow-md">
+                            <h3 className="text-2xl font-semibold mb-6 text-stone-800">Our Hours</h3>
+                            {settings ? (
+                                <div className="space-y-3">
+                                    {hoursDisplay.map((hours, index) => (
+                                        <div key={index} className="flex justify-between text-stone-700">
+                                            <span className="font-medium">{hours.split(':')[0]}:</span>
+                                            <span>{hours.split(':')[1]}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="animate-pulse h-32 bg-stone-200 rounded-md"></div>
+                            )}
+
+                            <div className="mt-8 pt-6 border-t border-stone-200">
+                                <h4 className="text-xl font-medium mb-4 text-stone-800">Contact Us</h4>
+                                {settings ? (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center text-stone-700">
+                                            <Phone className="h-4 w-4 mr-2 text-amber-700" />
+                                            <span>{settings.phone}</span>
+                                        </div>
+                                        <div className="flex items-center text-stone-700">
+                                            <Mail className="h-4 w-4 mr-2 text-amber-700" />
+                                            <span>{settings.email}</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="animate-pulse h-16 bg-stone-200 rounded-md"></div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="relative h-80 md:h-auto rounded-xl overflow-hidden shadow-md">
+                            <Image
+                                src="https://images.unsplash.com/photo-1554118811-1e0d58224f24"
+                                alt="Cafe Location"
+                                fill
+                                className="object-cover"
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-4">
+                                <div className="flex items-center text-white">
+                                    <MapPin className="h-5 w-5 mr-2 text-amber-400" />
+                                    <span>{settings?.address || '123 Coffee Street, Brewville, CA 94123'}</span>
+                                </div>
+                                <Link
+                                    href="https://maps.google.com"
+                                    target="_blank"
+                                    className="mt-2 inline-flex items-center text-amber-400 hover:text-amber-300"
+                                >
+                                    Get directions
+                                    <ArrowRight className="ml-1 h-4 w-4" />
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </motion.section>
+
+            {/* Newsletter Section */}
+            <motion.section
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="py-24 bg-stone-50"
             >
                 <div className="container mx-auto px-4 max-w-4xl text-center">
                     <h2 className="mb-6 font-serif text-4xl font-bold text-stone-800">Join Our Community</h2>
@@ -404,7 +583,7 @@ const HomePage = () => {
                     </motion.div>
 
                     <p className="mt-4 text-sm text-stone-500">
-                        By subscribing, you agree to receive marketing emails from Project 1.0
+                        By subscribing, you agree to receive marketing emails from {settings?.storeName || 'Project 1.0'}
                     </p>
                 </div>
             </motion.section>
@@ -414,7 +593,7 @@ const HomePage = () => {
                 <div className="container mx-auto px-4">
                     <div className="grid gap-8 md:grid-cols-4">
                         <div>
-                            <h3 className="mb-4 text-lg font-bold text-white">Project 1.0</h3>
+                            <h3 className="mb-4 text-lg font-bold text-white">{settings?.storeName || 'Project 1.0'}</h3>
                             <p className="mb-4">Artisan coffee, expertly crafted</p>
                             <div className="flex space-x-4">
                                 <a href="#" className="hover:text-white transition-colors">Instagram</a>
@@ -425,10 +604,15 @@ const HomePage = () => {
 
                         <div>
                             <h3 className="mb-4 text-lg font-bold text-white">Visit Us</h3>
-                            <p>123 Coffee Street</p>
-                            <p>Beantown, CA 12345</p>
-                            <p>Mon-Fri: 7am-7pm</p>
-                            <p>Sat-Sun: 8am-6pm</p>
+                            <p>{settings?.address || '123 Coffee Street, Brewville, CA 94123'}</p>
+                            {hoursDisplay.length > 0 && (
+                                <div className="mt-2">
+                                    {hoursDisplay.slice(0, 2).map((hours, index) => (
+                                        <p key={index}>{hours}</p>
+                                    ))}
+                                    {hoursDisplay.length > 2 && <p>+{hoursDisplay.length - 2} more days</p>}
+                                </div>
+                            )}
                         </div>
 
                         <div>
@@ -436,15 +620,13 @@ const HomePage = () => {
                             <ul className="space-y-2">
                                 <li><Link href="/pages/coffee-shop" className="hover:text-white transition-colors">Menu</Link></li>
                                 <li><Link href="/pages/our-story" className="hover:text-white transition-colors">Our Story</Link></li>
-                                <li><Link href="/pages/events" className="hover:text-white transition-colors">Events</Link></li>
-                                <li><Link href="/pages/contact" className="hover:text-white transition-colors">Contact</Link></li>
                             </ul>
                         </div>
 
                         <div>
                             <h3 className="mb-4 text-lg font-bold text-white">Contact</h3>
-                            <p>info@project1coffee.com</p>
-                            <p>(555) 123-4567</p>
+                            <p>{settings?.email || 'contact@brewhaven.com'}</p>
+                            <p>{settings?.phone || '(555) 123-4567'}</p>
                             <Link
                                 href="/pages/contact"
                                 className="mt-4 inline-block text-amber-500 hover:text-amber-400 transition-colors"
@@ -455,7 +637,7 @@ const HomePage = () => {
                     </div>
 
                     <div className="mt-12 border-t border-stone-800 pt-6 text-center">
-                        <p>© 2025 Project 1.0 Coffee Shop. All rights reserved.</p>
+                        <p>© {new Date().getFullYear()} {settings?.storeName || 'Project 1.0'} Coffee Shop. All rights reserved.</p>
                     </div>
                 </div>
             </footer>
