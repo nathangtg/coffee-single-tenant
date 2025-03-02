@@ -81,8 +81,8 @@ const OrderPaymentFlow = () => {
             setCartItemsWithOptions(itemsWithOptions);
 
             // Calculate estimated preparation time based on items and quantity
-            const totalItems = itemsWithOptions.reduce((sum, item) => sum + item.quantity, 0);
-            setEstimatedTime(Math.max(10, Math.min(30, 10 + totalItems * 2)));
+            const totalPrepTime = cart.cartItems.reduce((sum, item) => sum + (item.item.preparationTime * item.quantity), 0);
+            setEstimatedTime(totalPrepTime);
 
             setLoading(false);
         } catch (err) {
@@ -189,7 +189,7 @@ const OrderPaymentFlow = () => {
                         <span>Est. Preparation Time: {estimatedTime} mins</span>
                     </div>
                     <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200">
-                        Dine-in
+                        Item Order
                     </Badge>
                 </div>
 
@@ -245,7 +245,7 @@ const OrderPaymentFlow = () => {
             <CardFooter className="flex justify-end space-x-4 bg-gray-50 p-6">
                 <Button
                     variant="outline"
-                    onClick={() => router.push('/cart')}
+                    onClick={() => router.push('/pages/cart')}
                     className="border-amber-200 text-amber-800 hover:bg-amber-50"
                 >
                     Back to Cart

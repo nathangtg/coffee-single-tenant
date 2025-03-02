@@ -44,6 +44,8 @@ next-env.d.ts
 playwright-report/
 test-results/
 *.log
+demo-report/
+
 
 # Public uploads
 /public/uploads

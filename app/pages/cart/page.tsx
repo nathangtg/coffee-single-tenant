@@ -500,15 +500,11 @@ const CartPage = () => {
                                             <span className="text-amber-700/70">Subtotal</span>
                                             <span className="text-amber-900">${orderTotal.toFixed(2)}</span>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-amber-700/70">Tax</span>
-                                            <span className="text-amber-900">${(orderTotal * 0.1).toFixed(2)}</span>
-                                        </div>
                                     </div>
                                     <Separator className="bg-amber-200" />
                                     <div className="flex justify-between text-lg font-medium">
                                         <span className="text-amber-900">Total</span>
-                                        <span className="text-amber-900 font-serif">${(orderTotal * 1.1).toFixed(2)}</span>
+                                        <span className="text-amber-900">${orderTotal.toFixed(2)}</span>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="pt-2 pb-6">
