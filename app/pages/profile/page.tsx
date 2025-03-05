@@ -25,10 +25,18 @@ export default function ProfilePage() {
     const [activeTab, setActiveTab] = useState('profile');
     const [filterStatus, setFilterStatus] = useState('ALL');
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [currencySymbol, setCurrencySymbol] = useState('$')
 
     const router = useRouter();
 
     useEffect(() => {
+
+        const fetchRestaurantSettings = async () => {
+            const response = await fetch("/api/restaurant-settings")
+            const data = await response.json()
+            setCurrencySymbol(data.currencySymbol)
+        }
+
         const fetchUserData = async () => {
             try {
                 const response = await fetch('/api/auth/user', {
@@ -77,6 +85,7 @@ export default function ProfilePage() {
 
         fetchUserData();
         fetchOrders();
+        fetchRestaurantSettings()
     }, [router]);
 
     const handleChange = (e) => {
@@ -292,9 +301,9 @@ export default function ProfilePage() {
             const itemData = [
                 item.item.name,
                 item.quantity,
-                `$${item.unitPrice.toFixed(2)}`,
+                `${currencySymbol || '$'} ${item.unitPrice.toFixed(2)}`,
                 optionText || 'No options',
-                `$${itemTotal.toFixed(2)}`
+                `${currencySymbol || '$'} ${itemTotal.toFixed(2)}`
             ];
             tableRows.push(itemData);
         });
@@ -330,10 +339,10 @@ export default function ProfilePage() {
         autoTable(doc, {
             body: [
                 [{ content: 'Order Summary', colSpan: 2, styles: { fontStyle: 'bold', fontSize: 12 } }],
-                ['Subtotal:', `$${subtotal.toFixed(2)}`],
-                ['Tax:', `$${tax.toFixed(2)}`],
-                ['Discount:', `$${discount.toFixed(2)}`],
-                [{ content: 'Total:', styles: { fontStyle: 'bold' } }, { content: `$${total.toFixed(2)}`, styles: { fontStyle: 'bold' } }]
+                ['Subtotal:', `${currencySymbol || '$'} ${subtotal.toFixed(2)}`],
+                ['Tax:', `${currencySymbol || '$'} ${tax.toFixed(2)}`],
+                ['Discount:', `${currencySymbol || '$'} ${discount.toFixed(2)}`],
+                [{ content: 'Total:', styles: { fontStyle: 'bold' } }, { content: `${currencySymbol || '$'} ${total.toFixed(2)}`, styles: { fontStyle: 'bold' } }]
             ],
             startY: doc.lastAutoTable.finalY + 10,
             theme: 'plain',
@@ -575,7 +584,7 @@ export default function ProfilePage() {
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                             <div className="bg-white p-4 rounded-xl shadow-sm">
                                                 <p className="text-sm text-gray-500">Total Spent</p>
-                                                <p className="text-2xl font-bold">${orderStats.total}</p>
+                                                <p className="text-2xl font-bold">{currencySymbol || '$'} {orderStats.total}</p>
                                             </div>
                                             <div className="bg-white p-4 rounded-xl shadow-sm">
                                                 <p className="text-sm text-gray-500">Orders Placed</p>
@@ -583,7 +592,7 @@ export default function ProfilePage() {
                                             </div>
                                             <div className="bg-white p-4 rounded-xl shadow-sm">
                                                 <p className="text-sm text-gray-500">Average Order</p>
-                                                <p className="text-2xl font-bold">${orderStats.average}</p>
+                                                <p className="text-2xl font-bold">{currencySymbol || '$'} {orderStats.average}</p>
                                             </div>
                                             <div className="bg-white p-4 rounded-xl shadow-sm">
                                                 <p className="text-sm text-gray-500">Most Ordered</p>
@@ -672,11 +681,11 @@ export default function ProfilePage() {
                                                                             <h3 className="text-base font-medium text-gray-900">{item.item.name}</h3>
                                                                             <div className="flex gap-3 mt-1">
                                                                                 <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                                                                                <p className="text-sm text-gray-500">Unit: ${item.unitPrice.toFixed(2)}</p>
+                                                                                <p className="text-sm text-gray-500">Unit: {currencySymbol || '$'} {item.unitPrice.toFixed(2)}</p>
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                    <p className="text-base font-medium text-gray-900">${(item.unitPrice * item.quantity).toFixed(2)}</p>
+                                                                    <p className="text-base font-medium text-gray-900">{currencySymbol || '$'} {(item.unitPrice * item.quantity).toFixed(2)}</p>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -699,20 +708,20 @@ export default function ProfilePage() {
                                                             {order.discount > 0 && (
                                                                 <div className="flex justify-between items-center mb-2">
                                                                     <div className="text-sm text-gray-500">Discount</div>
-                                                                    <div className="text-sm font-medium text-green-600">-${order.discount.toFixed(2)}</div>
+                                                                    <div className="text-sm font-medium text-green-600">-{currencySymbol || '$'} {order.discount.toFixed(2)}</div>
                                                                 </div>
                                                             )}
 
                                                             {order.tax > 0 && (
                                                                 <div className="flex justify-between items-center mb-2">
                                                                     <div className="text-sm text-gray-500">Tax</div>
-                                                                    <div className="text-sm font-medium">${order.tax.toFixed(2)}</div>
+                                                                    <div className="text-sm font-medium">{currencySymbol || '$'} {order.tax.toFixed(2)}</div>
                                                                 </div>
                                                             )}
 
                                                             <div className="flex justify-between items-center pt-3 border-t mt-3">
                                                                 <div className="text-base font-medium">Total</div>
-                                                                <div className="text-lg font-bold">${order.totalAmount.toFixed(2)}</div>
+                                                                <div className="text-lg font-bold">{currencySymbol || '$'} {order.totalAmount.toFixed(2)}</div>
                                                             </div>
 
                                                             {order.notes && (

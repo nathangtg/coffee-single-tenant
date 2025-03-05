@@ -39,6 +39,27 @@ type CartItem = {
     }>
 }
 
+type RestaurantSetting = {
+    id: string;
+    storeName: string;
+    address: string;
+    phone: string;
+    email: string;
+    logoUrl: string;
+    openingHours: {
+        [day: string]: {
+            open: string;
+            close: string;
+            closed?: boolean;
+        };
+    };
+    taxRate: number;
+    currencySymbol: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+
 type Cart = {
     id: string
     userId: string
@@ -72,11 +93,32 @@ export default function CartManagementTable() {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false)
     const [editedCartItems, setEditedCartItems] = useState<CartItem[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [restaurantSettings, setRestaurantSettings] = useState<RestaurantSetting | null>(null)
 
     useEffect(() => {
         fetchCarts()
         fetchItems()
+        fetchRestaurantSettings(
+        ).then((data) => {
+            setRestaurantSettings(data)
+        }
+        )
     }, [])
+
+    const fetchRestaurantSettings = async () => {
+        try {
+            const response = await fetch("/api/restaurant-settings", {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            })
+            const data = await response.json()
+            return data
+        } catch (error) {
+            console.error("Error fetching restaurant settings:", error)
+            return null
+        }
+    }
 
     const fetchCarts = async () => {
         setIsLoading(true)
@@ -324,7 +366,8 @@ export default function CartManagementTable() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    ${calculateCartTotal(cart.cartItems).toFixed(2)}
+                                                    {restaurantSettings?.currencySymbol}
+                                                    {calculateCartTotal(cart.cartItems).toFixed(2)}
                                                 </TableCell>
                                                 <TableCell className="text-sm">
                                                     {formatDate(cart.createdAt)}
@@ -414,7 +457,9 @@ export default function CartManagementTable() {
                                                         <TableCell className="font-medium">
                                                             {cartItem.item.name}
                                                         </TableCell>
-                                                        <TableCell>${itemPrice.toFixed(2)}</TableCell>
+                                                        <TableCell>
+                                                            {restaurantSettings?.currencySymbol}
+                                                            {itemPrice.toFixed(2)}</TableCell>
                                                         <TableCell>{cartItem.quantity}</TableCell>
                                                         <TableCell>
                                                             {cartItem.options && cartItem.options.length > 0 ? (

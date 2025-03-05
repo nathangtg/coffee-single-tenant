@@ -25,6 +25,7 @@ const CoffeeShop = () => {
     const [isAddingToCart, setIsAddingToCart] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [restaurantName, setRestaurantName] = useState(null);
+    const [currencySymbol, setCurrencySymbol] = useState('$')
 
     useEffect(() => {
         fetchCategories();
@@ -43,6 +44,7 @@ const CoffeeShop = () => {
             const isCurrentlyOpen = checkIfOpen(data.openingHours);
             setIsOpen(isCurrentlyOpen);
             setRestaurantName(data.storeName);
+            setCurrencySymbol(data.currencySymbol)
         } catch (error) {
             console.error('Error fetching restaurant settings:', error);
         }
@@ -339,8 +341,7 @@ const CoffeeShop = () => {
                                             />
                                             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
                                                 <Badge className="mb-2 bg-amber-700 hover:bg-amber-600">
-                                                    ${selectedItem.price.toFixed(2)}
-                                                </Badge>
+                                                    {currencySymbol || '$'} {selectedItem.price.toFixed(2)}                                                </Badge>
                                                 <h2 className="text-2xl font-bold text-white">{selectedItem.name}</h2>
                                             </div>
                                         </div>
@@ -398,7 +399,7 @@ const CoffeeShop = () => {
                                                                 >
                                                                     <span>{option.name}</span>
                                                                     <span className={`text-sm ${selectedOptions[option.id] ? "text-amber-100" : "text-amber-700"}`}>
-                                                                        +${option.priceModifier.toFixed(2)}
+                                                                        +{currencySymbol || '$'} {option.priceModifier.toFixed(2)}
                                                                     </span>
                                                                 </Button>
                                                             ))}
@@ -422,7 +423,7 @@ const CoffeeShop = () => {
                                         <CardFooter className="border-t border-amber-200 p-6">
                                             <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-4">
                                                 <div className="text-lg text-amber-900">
-                                                    Total: <span className="font-bold">${calculateItemTotal()}</span>
+                                                    Total: <span className="font-bold">{currencySymbol || '$'} {calculateItemTotal()}</span>
                                                 </div>
                                                 <Button
                                                     size="lg"
@@ -486,7 +487,7 @@ const CoffeeShop = () => {
                                                             </CardDescription>
                                                         </div>
                                                         <Badge className="text-base bg-amber-100 text-amber-900 hover:bg-amber-200">
-                                                            ${item.price.toFixed(2)}
+                                                            {currencySymbol || '$'} {item.price.toFixed(2)}
                                                         </Badge>
                                                     </div>
                                                 </CardHeader>

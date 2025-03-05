@@ -66,7 +66,6 @@ const EmptyCart = ({ onShopClick }) => (
 );
 
 // Edit Item Dialog Component
-// Edit ItemDialog Component (updated version)
 const EditItemDialog = ({ item, itemOptions, onSave, onClose, isUpdating }) => {
     const [quantity, setQuantity] = useState(item.quantity);
     const [notes, setNotes] = useState(item.notes || '');
@@ -198,6 +197,7 @@ const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
     const [selectedOptions, setSelectedOptions] = useState([]);
     const [itemTotal, setItemTotal] = useState(0);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [currencySymbol, setCurrencySymbol] = useState('$')
 
     useEffect(() => {
         const fetchCartItemOptions = async () => {
@@ -223,7 +223,14 @@ const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
             }
         };
 
+        const fetchRestaurantSettings = async () => {
+            const response = await fetch("/api/restaurant-settings")
+            const data = await response.json()
+            setCurrencySymbol(data.currencySymbol)
+        }
+
         fetchCartItemOptions();
+        fetchRestaurantSettings();
     }, [item.id, item.item.price, item.quantity, item.options]);
 
     return (
@@ -242,7 +249,7 @@ const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
                         <div>
                             <h3 className="font-serif text-lg text-amber-900">{item.item.name}</h3>
                             <div className="flex items-center gap-2 text-amber-700/70 text-sm">
-                                <span>${item.item.price.toFixed(2)} each</span>
+                                <span>{currencySymbol || '$'} {item.item.price.toFixed(2)} each</span>
                                 <span>×</span>
                                 <span>{item.quantity}</span>
                             </div>
@@ -283,7 +290,7 @@ const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
                             <div className="flex flex-wrap gap-2">
                                 {selectedOptions.map((opt) => (
                                     <Badge key={opt.id} variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200">
-                                        {opt.option.name} (+${opt.option.priceModifier.toFixed(2)})
+                                        {opt.option.name} (+{currencySymbol || '$'} {opt.option.priceModifier.toFixed(2)})
                                     </Badge>
                                 ))}
                             </div>
@@ -297,7 +304,7 @@ const CartItem = ({ item, onEdit, onDelete, itemOptions, onPriceUpdate }) => {
                     )}
 
                     <div className="text-sm font-medium text-amber-800">
-                        Subtotal: ${itemTotal.toFixed(2)}
+                        Subtotal: {currencySymbol || '$'} {itemTotal.toFixed(2)}
                     </div>
                 </div>
             </div>
@@ -314,6 +321,7 @@ const CartPage = () => {
     const [isUpdating, setIsUpdating] = useState(false);
     const [itemTotals, setItemTotals] = useState({});
     const [orderTotal, setOrderTotal] = useState(0);
+    const [currencySymbol, setCurrencySymbol] = useState('$')
 
     const fetchCart = async () => {
         try {
@@ -345,6 +353,12 @@ const CartPage = () => {
         }
     };
 
+    const fetchRestaurantSettings = async () => {
+        const response = await fetch("/api/restaurant-settings")
+        const data = await response.json()
+        setCurrencySymbol(data.currencySymbol)
+    }
+
     const fetchItemOptions = async () => {
         try {
             const response = await fetch('/api/itemOptions');
@@ -359,6 +373,7 @@ const CartPage = () => {
     useEffect(() => {
         fetchCart();
         fetchItemOptions();
+        fetchRestaurantSettings();
     }, []);
 
     useEffect(() => {
@@ -498,13 +513,13 @@ const CartPage = () => {
                                     <div className="space-y-3">
                                         <div className="flex justify-between">
                                             <span className="text-amber-700/70">Subtotal</span>
-                                            <span className="text-amber-900">${orderTotal.toFixed(2)}</span>
+                                            <span className="text-amber-900">{currencySymbol || '$'} {orderTotal.toFixed(2)}</span>
                                         </div>
                                     </div>
                                     <Separator className="bg-amber-200" />
                                     <div className="flex justify-between text-lg font-medium">
                                         <span className="text-amber-900">Total</span>
-                                        <span className="text-amber-900">${orderTotal.toFixed(2)}</span>
+                                        <span className="text-amber-900">{currencySymbol || '$'} {orderTotal.toFixed(2)}</span>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="pt-2 pb-6">

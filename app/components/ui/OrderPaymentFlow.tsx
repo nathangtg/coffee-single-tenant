@@ -34,10 +34,20 @@ const OrderPaymentFlow = () => {
     const [cartDetails, setCartDetails] = useState(null);
     const [cartItemsWithOptions, setCartItemsWithOptions] = useState([]);
     const [estimatedTime, setEstimatedTime] = useState(15); // Minutes
+    const [currencySymbol, setCurrencySymbol] = useState('$')
+
+
 
     useEffect(() => {
         fetchCartAndOptions();
+        fetchRestaurantSettings();
     }, []);
+
+    const fetchRestaurantSettings = async () => {
+        const response = await fetch("/api/restaurant-settings")
+        const data = await response.json()
+        setCurrencySymbol(data.currencySymbol)
+    }
 
     const fetchCartAndOptions = async () => {
         try {
@@ -206,14 +216,14 @@ const OrderPaymentFlow = () => {
                                         <Badge className="mr-2 bg-amber-100 text-amber-800 hover:bg-amber-100">{item.quantity}x</Badge>
                                         <span className="font-medium">{item.item.name}</span>
                                     </div>
-                                    <span>${(item.item.price * item.quantity).toFixed(2)}</span>
+                                    <span>{currencySymbol || '$'} {(item.item.price * item.quantity).toFixed(2)}</span>
                                 </div>
                                 {item.options?.length > 0 && (
                                     <div className="ml-10 mt-2 text-sm text-gray-600">
                                         {item.options.map((opt) => (
                                             <div key={opt.id} className="flex justify-between">
                                                 <span>• {opt.option.name}</span>
-                                                <span>+${(opt.option.priceModifier * item.quantity).toFixed(2)}</span>
+                                                <span>+{currencySymbol || '$'} {(opt.option.priceModifier * item.quantity).toFixed(2)}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -229,16 +239,16 @@ const OrderPaymentFlow = () => {
                 <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
                     <div className="flex justify-between text-gray-600 mb-2">
                         <span>Subtotal</span>
-                        <span>${calculateSubtotal(cartItemsWithOptions).toFixed(2)}</span>
+                        <span>{currencySymbol || '$'} {calculateSubtotal(cartItemsWithOptions).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-gray-600 mb-2">
                         <span>Options & Add-ons</span>
-                        <span>${calculateOptionsTotal(cartItemsWithOptions).toFixed(2)}</span>
+                        <span>{currencySymbol || '$'} {calculateOptionsTotal(cartItemsWithOptions).toFixed(2)}</span>
                     </div>
                     <Separator className="my-3 bg-amber-200" />
                     <div className="flex justify-between font-medium text-lg">
                         <span>Total</span>
-                        <span className="text-amber-800">${calculateTotal(cartItemsWithOptions).toFixed(2)}</span>
+                        <span className="text-amber-800">{currencySymbol || '$'} {calculateTotal(cartItemsWithOptions).toFixed(2)}</span>
                     </div>
                 </div>
             </CardContent>
@@ -305,7 +315,7 @@ const OrderPaymentFlow = () => {
                         <Separator className="my-3 bg-amber-100" />
                         <div className="flex items-center justify-between font-medium">
                             <span>Total Amount:</span>
-                            <span className="text-amber-800 text-lg">${orderDetails?.totalAmount.toFixed(2)}</span>
+                            <span className="text-amber-800 text-lg">{currencySymbol || '$'} {orderDetails?.totalAmount.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
@@ -415,7 +425,7 @@ const OrderPaymentFlow = () => {
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Amount</p>
-                                <p className="font-medium">${paymentDetails?.amount.toFixed(2)}</p>
+                                <p className="font-medium">{currencySymbol || '$'} {paymentDetails?.amount.toFixed(2)}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Method</p>
@@ -427,7 +437,7 @@ const OrderPaymentFlow = () => {
 
                 <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 text-center">
                     <p className="text-amber-800">
-                        We'll notify you when your order is ready for pickup at the counter.
+                        We will notify you when your order is ready for pickup at the counter.
                     </p>
                 </div>
             </CardContent>

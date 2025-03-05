@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Plus, Pencil, Trash2, DollarSign } from "lucide-react"
+import { Search, Plus, Pencil, Trash2 } from "lucide-react"
 
 type ItemOption = {
   id: string
@@ -20,6 +20,26 @@ type Item = {
   name: string
 }
 
+type RestaurantSettings = {
+  id: string;
+  storeName: string;
+  address: string;
+  phone: string;
+  email: string;
+  logoUrl: string;
+  openingHours: {
+    [day: string]: {
+      open: string;
+      close: string;
+      closed?: boolean;
+    };
+  };
+  taxRate: number;
+  currencySymbol: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export default function ItemOptionsTable() {
   const [itemOptions, setItemOptions] = useState<ItemOption[]>([])
   const [items, setItems] = useState<Item[]>([])
@@ -27,11 +47,19 @@ export default function ItemOptionsTable() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [showAddForm, setShowAddForm] = useState(false)
+  const [restaurantSettings, setRestaurantSettings] = useState<RestaurantSettings | null>(null)
 
   useEffect(() => {
     fetchItemOptions()
     fetchItems()
+    fetchRestaurantSettings()
   }, [])
+
+  const fetchRestaurantSettings = async () => {
+    const response = await fetch("/api/restaurant-settings")
+    const data = await response.json()
+    setRestaurantSettings(data)
+  }
 
   const fetchItemOptions = async () => {
     const response = await fetch("/api/itemOptions", {
@@ -186,13 +214,13 @@ export default function ItemOptionsTable() {
                           setItemOptions(
                             itemOptions.map((o) =>
                               o.id === option.id ? { ...o, priceModifier: Number.parseFloat(e.target.value) } : o,
-                            ),
+                            )
                           )
                         }
                       />
                     ) : (
                       <div className="flex items-center space-x-1">
-                        <DollarSign className="h-4 w-4 text-gray-500" />
+                        <span>{restaurantSettings?.currencySymbol || '$'}</span>
                         <span className={option.priceModifier >= 0 ? 'text-green-600' : 'text-red-600'}>
                           {option.priceModifier >= 0 ? '+' : ''}{option.priceModifier.toFixed(2)}
                         </span>

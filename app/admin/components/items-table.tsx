@@ -29,6 +29,26 @@ type Category = {
   name: string
 }
 
+type RestaurantSettings = {
+  id: string;
+  storeName: string;
+  address: string;
+  phone: string;
+  email: string;
+  logoUrl: string;
+  openingHours: {
+    [day: string]: {
+      open: string;
+      close: string;
+      closed?: boolean;
+    };
+  };
+  taxRate: number;
+  currencySymbol: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export default function ItemsTable() {
   const [items, setItems] = useState<Item[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -38,11 +58,13 @@ export default function ItemsTable() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [restaurantSettings, setRestaurantSettings] = useState<RestaurantSettings | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     fetchItems()
     fetchCategories()
+    fetchRestaurantSettings()
   }, [])
 
   const fetchItems = async () => {
@@ -56,6 +78,13 @@ export default function ItemsTable() {
     const data = await response.json()
     setCategories(data)
   }
+
+  const fetchRestaurantSettings = async () => {
+    const response = await fetch("/api/restaurant-settings")
+    const data = await response.json()
+    setRestaurantSettings(data)
+  }
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -315,7 +344,7 @@ export default function ItemsTable() {
                         }
                       />
                     ) : (
-                      `$${item.price.toFixed(2)}`
+                      `${restaurantSettings?.currencySymbol || '$'} ${item.price.toFixed(2)}`
                     )}
                   </TableCell>
                   <TableCell>
