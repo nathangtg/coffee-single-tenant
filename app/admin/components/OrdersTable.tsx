@@ -13,8 +13,7 @@ import {
     Calendar,
     AlertCircle,
     ChevronDown,
-    DollarSign,
-    Activity,
+=    Activity,
     PieChart,
     ShoppingBag,
     TrendingUp,
@@ -132,8 +131,11 @@ export default function OrdersTable() {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
     const [showDetailsDialog, setShowDetailsDialog] = useState(false)
 
+    const [currencySymbol, setCurrencySymbol] = useState('$')
+
     useEffect(() => {
         fetchOrders()
+        fetchRestaurantSettings()
     }, [])
 
     useEffect(() => {
@@ -141,6 +143,12 @@ export default function OrdersTable() {
             calculateOrderStats()
         }
     }, [orders])
+
+    const fetchRestaurantSettings = async () => {
+        const response = await fetch("/api/restaurant-settings")
+        const data = await response.json()
+        setCurrencySymbol(data.currencySymbol)
+    }
 
     const fetchOrders = async () => {
         setLoading(true)
@@ -345,8 +353,9 @@ export default function OrdersTable() {
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD'
-        }).format(amount)
+            currency: 'USD',
+            currencyDisplay: 'symbol'
+        }).format(amount).replace('$', currencySymbol)
     }
 
     const isOrderExpanded = (orderId: string) => {
@@ -403,7 +412,7 @@ export default function OrdersTable() {
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg font-medium flex items-center gap-2">
-                                <DollarSign className="h-5 w-5 text-green-500" />
+                                {currencySymbol ? currencySymbol : '$'}
                                 Revenue
                             </CardTitle>
                         </CardHeader>
@@ -782,7 +791,7 @@ export default function OrdersTable() {
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Total Amount</label>
                                     <div className="relative">
-                                        <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                                        {currencySymbol ? currencySymbol : '$'}
                                         <Input
                                             type="number"
                                             className="pl-8"
@@ -802,7 +811,7 @@ export default function OrdersTable() {
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Discount</label>
                                     <div className="relative">
-                                        <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                                        {currencySymbol ? currencySymbol : '$'}
                                         <Input
                                             type="number"
                                             className="pl-8"
@@ -820,7 +829,7 @@ export default function OrdersTable() {
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Tax</label>
                                     <div className="relative">
-                                        <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                                        {currencySymbol ? currencySymbol : '$'}
                                         <Input
                                             type="number"
                                             className="pl-8"
