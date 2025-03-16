@@ -1,202 +1,121 @@
-# Next.js Project
+# Coffee Shop Single Tenant Application
 
-This is a full-stack Next.js application with Prisma, Tailwind CSS, and Playwright for testing.
-
-## Table of Contents
-
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Database Setup](#database-setup)
-  - [Prisma Setup](#prisma-setup)
-  - [Running Migrations](#running-migrations)
-  - [Seeding the Database](#seeding-the-database)
-- [Development](#development)
-- [Testing with Playwright](#testing-with-playwright)
-- [Deployment](#deployment)
-- [Project Structure](#project-structure)
-- [Contributing](#contributing)
-- [License](#license)
+A modern, full-stack application for managing a coffee shop business. Built with Next.js, Prisma, and React, this solution provides everything needed to run a coffee shop's digital operations.
 
 ## Features
 
-- **Next.js**: React framework for server-rendered applications
-- **Prisma**: Next-generation ORM for Node.js and TypeScript
-- **Tailwind CSS**: Utility-first CSS framework
-- **Playwright**: End-to-end testing library
+- **User Authentication**: Secure login and registration system with role-based access control
+- **Menu Management**: Add, edit, and categorize menu items with custom options
+- **Order Processing**: Complete order lifecycle from creation to fulfillment
+- **Cart System**: Intuitive shopping cart for customers
+- **Payment Integration**: Support for various payment methods
+- **Favorites & Reviews**: Allow customers to save favorites and leave reviews
+- **Responsive Design**: Works seamlessly on mobile and desktop devices
+- **Admin Dashboard**: Comprehensive management tools for staff
 
-## Prerequisites
+## Tech Stack
 
-- Node.js 18.x or later
-- npm or yarn or pnpm or bun
-- A database (PostgreSQL, MySQL, SQLite, etc.)
+- **Frontend**: Next.js 15, React 19, Tailwind CSS, Radix UI
+- **Backend**: Next.js API Routes, Prisma ORM
+- **Database**: MySQL
+- **Authentication**: JWT (JSON Web Tokens)
+- **Styling**: Tailwind CSS with custom components
+- **PDF Generation**: jsPDF for receipts and reports
 
 ## Getting Started
 
-1. Clone the repository:
+### Prerequisites
 
-```bash
-git clone https://github.com/yourusername/your-project-name.git
-cd your-project-name
-```
+- Node.js 18+
+- MySQL database
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/coffee-single-tenant.git
+   cd coffee-single-tenant
+   ```
 
 2. Install dependencies:
-
-```bash
-npm install
-# or
-yarn install
-# or
-pnpm install
-# or
-bun install
-```
-
-3. Set up environment variables (see [Environment Variables](#environment-variables))
-
-4. Set up the database (see [Database Setup](#database-setup))
-
-5. Run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-6. Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
-
-## Environment Variables
-
-Create a `.env` file in the root directory with the following variables:
-
-```
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/dbname?schema=public"
-
-# Next Auth (if using)
-NEXTAUTH_SECRET="your-secret"
-NEXTAUTH_URL="http://localhost:3000"
-
-# Add other environment variables as needed
-```
-
-**Important**: Never commit your `.env` file to version control. Make sure it's included in your `.gitignore` file.
-
-## Database Setup
-
-### Prisma Setup
-
-This project uses Prisma as the ORM. To set up Prisma:
-
-1. Make sure your database connection URL is in the `.env` file (see above).
-
-2. Generate the Prisma client:
-
-```bash
-npx prisma generate
-```
-
-### Running Migrations
-
-To create and apply migrations:
-
-1. Make changes to your schema in `prisma/schema.prisma`
-
-2. Create a migration:
-
-```bash
-npx prisma migrate dev --name descriptive-name
-```
-
-This will:
-- Create a new migration file
-- Apply the migration to your database
-- Generate the Prisma client
-
-### Seeding the Database
-
-The project includes seed data to populate your database with initial records:
-
-```bash
-npx prisma db seed
-```
-
-**Important**: Make sure to run this command after setting up your database to ensure you have the necessary initial data.
-
-## Development
-
-You can start editing the pages by modifying the files in the `app` directory. The pages auto-update as you edit the files.
-
-This project uses:
-- [Next.js App Router](https://nextjs.org/docs/app) for routing
-- [Tailwind CSS](https://tailwindcss.com/) for styling
-- [Prisma](https://prisma.io/) for database access
-
-## Testing with Playwright
-
-This project uses Playwright for end-to-end testing. To run the tests:
-
-1. Install Playwright browsers (if you haven't already):
-
-```bash
-npx playwright install
-```
-
-2. Run the tests:
-
-```bash
-npm run test:e2e
-# or
-yarn test:e2e
-# or
-pnpm test:e2e
-# or
-bun test:e2e
-```
-
-You can also run the tests in UI mode:
-
-```bash
-npx playwright test --ui
-```
-
-## Deployment
-
-The easiest way to deploy your Next.js app is using the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Before deployment:
-1. Set up the environment variables in your hosting platform
-2. Run database migrations in your production environment:
    ```bash
-   npx prisma migrate deploy
+   npm install
+   # or
+   yarn install
    ```
-3. Seed the production database if needed:
+
+3. Set up environment variables:
+   Create a `.env` file in the root directory with the following:
+   ```
+   DATABASE_URL="mysql://username:password@localhost:3306/coffee_shop"
+   JWT_SECRET="your-secret-key"
+   ```
+
+4. Initialize the database:
    ```bash
+   npx prisma migrate dev --name init
    npx prisma db seed
    ```
 
-Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+5. Run the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+6. Open your browser and navigate to `http://localhost:3000`
 
 ## Project Structure
 
 ```
-├── app/              # Next.js App Router pages and layouts
-├── components/       # React components
-├── lib/              # Utility functions and shared code
-├── prisma/           # Prisma schema and migrations
-│   ├── schema.prisma # Database schema
-│   └── seed.ts       # Database seed script
-├── public/           # Static assets
-├── styles/           # Global styles
-├── tests/            # Playwright tests
-└── ...config files
+coffee-single-tenant/
+├── app/               # Next.js app router
+│   ├── api/           # API routes
+│   ├── admin/         # Admin dashboard pages
+│   ├── auth/          # Authentication pages
+│   ├── menu/          # Menu pages
+│   └── cart/          # Shopping cart pages
+├── components/        # React components
+├── lib/               # Utility functions and hooks
+├── prisma/            # Prisma schema and migrations
+│   ├── schema.prisma  # Database schema
+│   └── seed.ts        # Seed data
+├── public/            # Static assets
+├── styles/            # Global styles
+└── types/             # TypeScript type definitions
 ```
+
+## Database Schema
+
+The application uses a comprehensive database schema designed for coffee shop operations:
+
+- Users (customers, staff, admins)
+- Menu categories and items
+- Customization options
+- Orders and order items
+- Payments
+- Reviews and favorites
+- Store settings
+
+## Deployment
+
+This application can be deployed to any platform that supports Next.js applications:
+
+1. Build the application:
+   ```bash
+   npm run build
+   # or
+   yarn build
+   ```
+
+2. Start the production server:
+   ```bash
+   npm start
+   # or
+   yarn start
+   ```
 
 ## Contributing
 
@@ -204,4 +123,11 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-[MIT](LICENSE)
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- [Next.js](https://nextjs.org/)
+- [Prisma](https://www.prisma.io/)
+- [TailwindCSS](https://tailwindcss.com/)
+- [Radix UI](https://www.radix-ui.com/)
